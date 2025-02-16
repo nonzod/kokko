@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pihole
+spec:
+  selector:
+    matchLabels:
+      app: pihole
+  template:
+    metadata:
+      labels:
+        app: pihole
+    spec:
+      containers:
+      - name: pihole
+        image: pihole/pihole:latest
+        env:
+        - name: TZ
+          value: "Europe/Rome"
+        - name: WEBPASSWORD
+          value: "first-time"
+        - name: ServerIP
+          value: "192.168.178.112"
+        ports:
+        - containerPort: 80
+          name: http
+        - containerPort: 53
+          protocol: TCP
+          name: dns-tcp
+        - containerPort: 53
+          protocol: UDP
+          name: dns-udp
+        - containerPort: 67
+          protocol: UDP
+          name: dhcp
+        resources:
+          limits:
+            memory: 512Mi
+            cpu: "0.5"
+          requests:
+            memory: 256Mi
+            cpu: "0.2"
+        volumeMounts:
+        - name: pihole-etc
+          mountPath: /etc/pihole
+        - name: dnsmasq-etc
+          mountPath: /etc/dnsmasq.d
+      volumes:
+      - name: pihole-etc
+        hostPath:
+          path: /mnt/ha-config/pihole/etc-pihole
+          type: DirectoryOrCreate
+      - name: dnsmasq-etc
+        hostPath:
+          path: /mnt/ha-config/pihole/etc-dnsmasq.d
+          type: DirectoryOrCreate

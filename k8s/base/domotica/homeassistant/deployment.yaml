@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homeassistant
+spec:
+  selector:
+    matchLabels:
+      app: homeassistant
+  template:
+    metadata:
+      labels:
+        app: homeassistant
+    spec:
+      containers:
+      - name: homeassistant
+        image: ghcr.io/home-assistant/home-assistant:stable
+        securityContext:
+          privileged: true
+        resources:
+          limits:
+            memory: 2Gi
+            cpu: "1"
+          requests:
+            memory: 1Gi
+            cpu: "0.2"
+        volumeMounts:
+        - name: ha-config
+          mountPath: /config
+      volumes:
+      - name: ha-config
+        hostPath:
+          path: /mnt/ha-config
+          type: DirectoryOrCreate
