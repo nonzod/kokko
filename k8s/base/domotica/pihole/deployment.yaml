@@ -18,9 +18,10 @@ spec:
         - name: TZ
           value: "Europe/Rome"
         - name: WEBPASSWORD
-          value: "first-time"
-        - name: ServerIP
-          value: "192.168.178.112"
+          valueFrom:
+            secretKeyRef:
+              name: pihole-secret
+              key: webpassword
         ports:
         - containerPort: 80
           name: http
