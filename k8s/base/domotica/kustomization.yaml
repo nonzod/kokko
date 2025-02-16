@@ -6,4 +6,3 @@ namespace: domotica
 resources:
 - homeassistant
 - esphome
-- pihole
