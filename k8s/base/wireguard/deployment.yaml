@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wireguard
+  labels:
+    app: wireguard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wireguard
+  template:
+    metadata:
+      labels:
+        app: wireguard
+    spec:
+      containers:
+        - name: wireguard
+          image: ghcr.io/wg-easy/wg-easy
+          envFrom:
+            - configMapRef:
+                name: wireguard-config
+            - secretRef:
+                name: wireguard-secrets  # Aggiunto il riferimento al Secret
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: "1"
+            requests:
+              memory: 256Mi
+              cpu: "0.2"
+          ports:
+            - containerPort: 51821
+            - containerPort: 51820
+              protocol: UDP
+          volumeMounts:
+            - name: wireguard-data
+              mountPath: /etc/wireguard
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+                - SYS_MODULE
+      volumes:
+        - name: wireguard-data
+          hostPath:
+            path: /mnt/wireguard-data
+            type: DirectoryOrCreate

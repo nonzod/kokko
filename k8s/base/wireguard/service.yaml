@@ -1,0 +1,33 @@
+# VPN Connection Service YAML definition
+apiVersion: v1
+kind: Service
+metadata:
+  name: wireguard-vpn
+  labels:
+    app: wireguard
+spec:
+  type: LoadBalancer
+  selector:
+    app: wireguard
+  ports:
+    - name: vpn
+      port: 51820
+      targetPort: 51820
+      protocol: UDP
+---
+# VPN WeUI Service YAML definition
+apiVersion: v1
+kind: Service
+metadata:
+  name: wireguard-web
+  labels:
+    app: wireguard
+spec:
+  type: LoadBalancer
+  selector:
+    app: wireguard
+  ports:
+    - name: web
+      port: 51821
+      targetPort: 51821
+      protocol: TCP
