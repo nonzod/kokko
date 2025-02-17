@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nicolatomassoni-service
+spec:
+  selector:
+    app: nicolatomassoni-website
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
