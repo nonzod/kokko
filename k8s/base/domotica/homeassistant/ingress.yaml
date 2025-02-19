@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: homeassistant-ingress
+  namespace: domotica
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: "letsencrypt-office"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - casa.nicolatomassoni.it
+      secretName: homeassistant-tls
+  rules:
+  - host: "casa.nicolatomassoni.it"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: homeassistant-web
+            port:
+              number: 8123

@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: hugo
-        image: nonzod/nicolatomassoni-website:0.0.2-arm64v8
+        image: nonzod/nicolatomassoni-website:0.0.5-arm64v8
         ports:
         - containerPort: 80
         resources:

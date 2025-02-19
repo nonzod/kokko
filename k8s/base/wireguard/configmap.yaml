@@ -4,6 +4,6 @@ metadata:
   name: wireguard-config
 data:
   LANG: it
-  WG_HOST: "office.tourtools.eu"
+  WG_HOST: ""
   PORT: "51821"
   WG_PORT: "51820"
