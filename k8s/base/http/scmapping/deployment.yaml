@@ -1,0 +1,41 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scmapping-nodejs
+  labels:
+    app: scmapping-nodejs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scmapping-nodejs
+  template:
+    metadata:
+      labels:
+        app: scmapping-nodejs
+    spec:
+      containers:
+      - name: scmapping
+        image: nonzod/scmapping-nodejs:0.0.2-arm64v8
+        ports:
+        - containerPort: 3000
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
