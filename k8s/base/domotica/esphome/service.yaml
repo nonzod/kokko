@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: esphome-web
+spec:
+  selector:
+    app: esphome
+  type: ClusterIP
+  ports:
+  - port: 6052
+    targetPort: 6052

@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: esphome-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: SAMEORIGIN";
+      sub_filter_once off;
+      sub_filter 'src="./' 'src="./esphome/';
+      sub_filter 'href="./' 'href="./esphome/';
+      if ($request_uri ~* \.js$) {
+        more_set_headers "Content-Type: application/javascript";
+      }
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: "letsencrypt-office"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - casa.nicolatomassoni.it
+      secretName: homeassistant-tls
+  rules:
+  - host: "casa.nicolatomassoni.it"
+    http:
+      paths:
+      - pathType: ImplementationSpecific
+        path: "/esphome(.+)"
+        backend:
+          service:
+            name: esphome-web
+            port:
+              number: 6052

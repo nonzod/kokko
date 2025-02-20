@@ -22,3 +22,16 @@ spec:
     targetPort: 67
     protocol: UDP
     name: dhcp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole-web
+spec:
+  type: ClusterIP
+  selector:
+    app: pihole
+  ports:
+  - port: 8000
+    targetPort: 80
+    name: http
