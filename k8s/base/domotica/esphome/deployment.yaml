@@ -36,7 +36,7 @@ spec:
             memory: 1Gi
             cpu: "3"
           requests:
-            memory: 512Mi
+            memory: 156Mi
             cpu: "0.5"
         volumeMounts:
         - name: esphome-config
