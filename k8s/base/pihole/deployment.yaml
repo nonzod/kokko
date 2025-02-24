@@ -48,10 +48,8 @@ spec:
           mountPath: /etc/dnsmasq.d
       volumes:
       - name: pihole-etc
-        hostPath:
-          path: /mnt/ha-config/pihole/etc-pihole
-          type: DirectoryOrCreate
+        persistentVolumeClaim:
+          claimName: pihole-etc-pvc
       - name: dnsmasq-etc
-        hostPath:
-          path: /mnt/ha-config/pihole/etc-dnsmasq.d
-          type: DirectoryOrCreate
+        persistentVolumeClaim:
+          claimName: dnsmasq-etc-pvc

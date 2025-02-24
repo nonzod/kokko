@@ -4,5 +4,6 @@ kind: Kustomization
 namespace: pihole
 
 resources:
+- pvc.yaml
 - deployment.yaml
 - service.yaml
