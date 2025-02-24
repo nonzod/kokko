@@ -2,8 +2,9 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: wireguard-config
+  namespace: wireguard
 data:
   LANG: it
-  WG_HOST: ""
+  WG_HOST: "vpn.nicolatomassoni.it"
   PORT: "51821"
   WG_PORT: "51820"
