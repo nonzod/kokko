@@ -44,6 +44,5 @@ spec:
                 - SYS_MODULE
       volumes:
         - name: wireguard-data
-          hostPath:
-            path: /mnt/wireguard-data
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: wireguard-data-pvc
