@@ -46,9 +46,8 @@ spec:
           readOnly: true
       volumes:
       - name: esphome-config
-        hostPath:
-          path: /mnt/ha-config/esphome
-          type: DirectoryOrCreate
+        persistentVolumeClaim:
+          claimName: esphome-config-pvc
       - name: localtime
         hostPath:
           path: /etc/localtime
