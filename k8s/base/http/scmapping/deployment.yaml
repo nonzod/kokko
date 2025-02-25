@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: scmapping
-        image: nonzod/scmapping-nodejs:0.0.2-amd64
+        image: nonzod/scmapping-nodejs:0.0.3-amd64
         ports:
         - containerPort: 3000
         resources:
