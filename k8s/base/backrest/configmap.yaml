@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backrest-config
+  namespace: restic
+data:
+  BACKREST_PORT: "9898"
+  BACKREST_DATA: "/mnt/data"
+  BACKREST_CONFIG: "/mnt/config"
+  XDG_CACHE_HOME: "/mnt/cache"

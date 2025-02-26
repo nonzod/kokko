@@ -1,0 +1,16 @@
+# Backrest WebUI Service YAML definition
+apiVersion: v1
+kind: Service
+metadata:
+  name: backrest-ui
+  namespace: restic
+  labels:
+    app: backrest
+spec:
+  type: LoadBalancer
+  selector:
+    app: backrest
+  ports:
+    - port: 9898
+      targetPort: 9898
+      protocol: TCP
