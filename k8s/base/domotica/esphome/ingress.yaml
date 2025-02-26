@@ -11,7 +11,7 @@ spec:
   tls:
     - hosts:
         - esphome.nicolatomassoni.it
-      secretName: homeassistant-tls
+      secretName: esphome-tls
   rules:
   - host: "esphome.nicolatomassoni.it"
     http:
