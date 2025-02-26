@@ -272,6 +272,10 @@ kubectl apply -k k8s/base/backrest/
 
 Access the Backrest UI at `http://<node-ip>:9898`
 
+## Storage Management
+
+For detailed information about persistent storage configuration, volume management, backups, and troubleshooting, see the [Storage Management Guide](STORAGE.md).
+
 ## Security Considerations
 
 - Credentials are stored in Kubernetes secrets
