@@ -14,7 +14,7 @@ spec:
   tls:
     - hosts:
         - pihole.nicolatomassoni.it
-      secretName: casa-tls
+      secretName: pihole-tls
   rules:
   - host: "pihole.nicolatomassoni.it"
     http:
