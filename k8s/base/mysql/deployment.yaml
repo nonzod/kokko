@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql
-  namespace: tt-mysql
+  namespace: mysql
 spec:
   selector:
     matchLabels:
@@ -29,8 +29,8 @@ spec:
           name: mysql
         resources:
             limits:
-              memory: "2Gi"
-              cpu: "1"
+              memory: "4Gi"
+              cpu: "2"
             requests:
               memory: "1Gi"
               cpu: "0.5"
