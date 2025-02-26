@@ -3,7 +3,7 @@ kind: Ingress
 metadata:
   name: pihole-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/configuration-snippet: |
       more_set_headers "X-Frame-Options: SAMEORIGIN";
@@ -13,14 +13,14 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - casa.nicolatomassoni.it
+        - pihole.nicolatomassoni.it
       secretName: casa-tls
   rules:
-  - host: "casa.nicolatomassoni.it"
+  - host: "pihole.nicolatomassoni.it"
     http:
       paths:
-      - pathType: ImplementationSpecific
-        path: "/pihole(.+)"
+      - pathType: Prefix
+        path:  /
         backend:
           service:
             name: pihole-web

@@ -19,14 +19,14 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - casa.nicolatomassoni.it
+        - esphome.nicolatomassoni.it
       secretName: homeassistant-tls
   rules:
-  - host: "casa.nicolatomassoni.it"
+  - host: "esphome.nicolatomassoni.it"
     http:
       paths:
-      - pathType: ImplementationSpecific
-        path: "/esphome(.+)"
+      - pathType: Prefix
+        path: /
         backend:
           service:
             name: esphome-web
