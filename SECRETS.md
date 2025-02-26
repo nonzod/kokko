@@ -25,3 +25,16 @@ type: Opaque
 stringData:
   webpassword: <PASSWORD>
 ```
+
+## MySQL
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: mysql
+type: kubernetes.io/basic-auth
+stringData:
+  password: '<MYSQL_ROOT_PASSWORD>'
+```
