@@ -41,7 +41,6 @@ spec:
         - containerPort: 8081
           name: stream
           protocol: TCP
-      nodeName: k3s1-node1
       volumes:
       - name: webcam-0
         hostPath:
