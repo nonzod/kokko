@@ -14,16 +14,16 @@ helm install cert-manager jetstack/cert-manager \
 
 Verifica Ingress
 
-`kubectl describe ingress kubotto-test-ingress -n kubotto-test`
+`kubectl describe ingress <ingress> -n <namespace>`
 
 Verifica ci sia il certificato
 
-`kubectl get certificate -n kubotto-test`
+`kubectl get certificate -n <namespace>`
 
 Dettagli certificato
 
-`kubectl describe certificate office-tls -n kubotto-test`
+`kubectl describe certificate <issuer> -n <namespace>`
 
 Log del cert manager
 
-`kubectl describe certificate office-tls -n kubotto-test`
+`kubectl describe certificate <issuer> -n <namespace>`

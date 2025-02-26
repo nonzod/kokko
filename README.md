@@ -14,16 +14,70 @@ Kubernetes configuration for Home Assistant and related services using Kustomize
 
 ```
 .
+├── argocd
+│   ├── configMap.yml
+│   ├── ingress.yml
+│   └── README.md
 ├── base
-│   ├── coredns/
-│   ├── domotica/
-│   │   ├── homeassistant/
-│   │   ├── esphome/
-│   │   └── pihole/
-│   └── mdns/
-└── overlays/
-    ├── development/
-    └── production/
+│   ├── backrest
+│   │   ├── configmap.yaml
+│   │   ├── deployment.yml
+│   │   ├── kustomization.yaml
+│   │   ├── pvc.yaml
+│   │   └── service.yaml
+│   ├── domotica
+│   │   ├── esphome
+│   │   │   ├── deployment.yaml
+│   │   │   ├── ingress.yaml
+│   │   │   ├── kustomization.yaml
+│   │   │   ├── pvc.yaml
+│   │   │   └── service.yaml
+│   │   ├── homeassistant
+│   │   │   ├── deployment.yaml
+│   │   │   ├── ingress.yaml
+│   │   │   ├── kustomization.yaml
+│   │   │   ├── pvc.yaml
+│   │   │   └── service.yaml
+│   │   └── kustomization.yaml
+│   ├── http
+│   │   ├── kustomization.yaml
+│   │   ├── nicolatomassoni
+│   │   │   ├── deployment.yaml
+│   │   │   ├── ingress.yaml
+│   │   │   ├── kustomization.yaml
+│   │   │   └── service.yaml
+│   │   └── scmapping
+│   │       ├── deployment.yaml
+│   │       ├── ingress.yaml
+│   │       ├── kustomization.yaml
+│   │       └── service.yaml
+│   ├── kustomization.yaml
+│   ├── pihole
+│   │   ├── deployment.yaml
+│   │   ├── ingress.yaml
+│   │   ├── kustomization.yaml
+│   │   ├── pvc.yaml
+│   │   ├── secret.yaml
+│   │   └── service.yaml
+│   └── wireguard
+│       ├── configmap.yaml
+│       ├── deployment.yaml
+│       ├── kustomization.yaml
+│       ├── pvc.yaml
+│       ├── secret.yaml
+│       └── service.yaml
+├── certmanager
+│   ├── cluster-issuer.yaml
+│   └── README.md
+├── coredns
+│   ├── coredns-config.yaml
+│   └── kustomization.yaml
+├── local-path-config.yaml
+└── overlays
+    ├── development
+    │   └── kustomization.yaml
+    └── production
+        └── kustomization.yaml
 ```
 
 ## Prerequisites
