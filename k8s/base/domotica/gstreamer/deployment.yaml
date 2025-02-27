@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webcam-rtsp-server
+spec:
+  selector:
+    matchLabels:
+      app: webcam-rtsp-server
+  template:
+    metadata:
+      labels:
+        app: webcam-rtsp-server
+    spec:
+      containers:
+      - name: webcam-rtsp-server
+        image: nonzod/gstreamer:latest
+        securityContext:
+          privileged: true
+        env:
+        - name: VIDEO_FRAMERATE
+          value: "10"
+        - name: BUFFER_SIZE
+          value: "64"
+        - name: VIDEO_WIDTH
+          value: "640"
+        - name: VIDEO_HEIGHT
+          value: "480"
+        resources:
+          limits:
+            memory: 2Gi
+            cpu: "1"
+          requests:
+            memory: 1Gi
+            cpu: "0.2"
+        volumeMounts:
+        - name: webcam
+          mountPath: /dev/video0
+        livenessProbe:
+          tcpSocket:
+            port: 8554
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 8554
+          initialDelaySeconds: 15
+          periodSeconds: 5
+      volumes:
+      - name: webcam
+        hostPath:
+          path: /dev/video0
+

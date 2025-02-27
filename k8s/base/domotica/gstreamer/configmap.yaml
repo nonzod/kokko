@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rtsp-server-config
+data:
+  WEBCAM_DEVICE: "/dev/video0"
+  VIDEO_WIDTH: "640"
+  VIDEO_HEIGHT: "480"
+  VIDEO_FRAMERATE: "10"
+  VIDEO_FORMAT: "auto"
+  RTSP_PORT: "8554"
+  RTSP_MOUNT_POINT: "/webcam"
+  BUFFER_SIZE: "64"

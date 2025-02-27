@@ -26,12 +26,7 @@ spec:
         volumeMounts:
         - name: ha-config
           mountPath: /config
-        - name: usb-devices
-          mountPath: /dev/bus/usb
       volumes:
       - name: ha-config
         persistentVolumeClaim:
           claimName: ha-config-pvc
-      - name: usb-devices
-        hostPath:
-          path: /dev/bus/usb

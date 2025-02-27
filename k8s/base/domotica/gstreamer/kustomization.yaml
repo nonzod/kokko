@@ -4,5 +4,6 @@ kind: Kustomization
 namespace: domotica
 
 resources:
-- homeassistant
-- esphome
+- configmap.yaml
+- deployment.yaml
+- service.yaml
