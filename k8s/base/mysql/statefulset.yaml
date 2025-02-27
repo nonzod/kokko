@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: mysql
+spec:
+  serviceName: "mysql"  # Questo è importante per la creazione dei DNS stabili
+  replicas: 1           # Per il tuo ambiente casalingo, 1 è sufficiente
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+        ports:
+        - containerPort: 3306
+          name: mysql
+        resources:
+          limits:
+            memory: "2Gi"  # Ridotto da 4Gi per un ambiente casalingo
+            cpu: "1"       # Ridotto da 2 per un ambiente casalingo
+          requests:
+            memory: "512Mi" # Ridotto da 1Gi per un ambiente casalingo
+            cpu: "0.2"     # Ridotto da 0.5 per un ambiente casalingo
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+        - name: mysql-config
+          mountPath: /etc/mysql/conf.d/custom.cnf
+          subPath: custom.cnf
+      volumes:
+      - name: mysql-config
+        configMap:
+          name: mysql-config
+  volumeClaimTemplates:  # Questo sostituisce il tuo PVC esterno
+  - metadata:
+      name: mysql-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "local-path"
+      resources:
+        requests:
+          storage: 24Gi
