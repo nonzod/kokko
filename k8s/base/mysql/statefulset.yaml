@@ -4,8 +4,8 @@ metadata:
   name: mysql
   namespace: mysql
 spec:
-  serviceName: "mysql"  # Questo è importante per la creazione dei DNS stabili
-  replicas: 1           # Per il tuo ambiente casalingo, 1 è sufficiente
+  serviceName: "mysql"
+  replicas: 1
   selector:
     matchLabels:
       app: mysql
@@ -28,11 +28,11 @@ spec:
           name: mysql
         resources:
           limits:
-            memory: "2Gi"  # Ridotto da 4Gi per un ambiente casalingo
-            cpu: "1"       # Ridotto da 2 per un ambiente casalingo
+            memory: "2Gi"
+            cpu: "2"
           requests:
-            memory: "512Mi" # Ridotto da 1Gi per un ambiente casalingo
-            cpu: "0.2"     # Ridotto da 0.5 per un ambiente casalingo
+            memory: "512Mi"
+            cpu: "0.2"
         volumeMounts:
         - name: mysql-data
           mountPath: /var/lib/mysql
@@ -43,7 +43,7 @@ spec:
       - name: mysql-config
         configMap:
           name: mysql-config
-  volumeClaimTemplates:  # Questo sostituisce il tuo PVC esterno
+  volumeClaimTemplates:
   - metadata:
       name: mysql-data
     spec:
