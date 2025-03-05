@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rtsp-server
+spec:
+  selector:
+    matchLabels:
+      app: rtsp-server
+  template:
+    metadata:
+      labels:
+        app: rtsp-server
+    spec:
+      hostNetwork: true
+      containers:
+      - name: rtsp-server
+        image: bluenviron/mediamtx:latest-ffmpeg
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true
+        envFrom:
+        - configMapRef:
+            name: rtsp-server-config
+        resources:
+          limits:
+            memory: 512Mi
+            cpu: "0.5"
+          requests:
+            memory: 128Mi
+            cpu: "0.1"
+        volumeMounts:
+        - name: webcam
+          mountPath: /dev/video0
+        - name: config
+          mountPath: /mediamtx.yml
+          subPath: mediamtx.yml
+      volumes:
+      - name: webcam
+        hostPath:
+          path: /dev/video0
+      - name: config
+        configMap:
+          name: mediamtx-config
+          defaultMode: 0644

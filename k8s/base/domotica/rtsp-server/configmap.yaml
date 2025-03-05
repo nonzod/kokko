@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rtsp-server-config
+data:
+  RTSP_PROTOCOLS: "tcp"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mediamtx-config
+data:
+  mediamtx.yml: |
+    # Your custom MediaMTX configuration goes here
+    # webrtcICEServers2:
+    # - url: stun:stun2.1.google.com:19302
+
+    paths:
+      cam:
+        runOnInit: ffmpeg -f v4l2 -i /dev/video0 -c:v libx264 -pix_fmt yuv420p -preset ultrafast -b:v 600k -f rtsp rtsp://localhost:8554/scaccia
+        runOnInitRestart: yes
+
+      all_others:
