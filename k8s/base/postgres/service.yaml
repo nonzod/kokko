@@ -18,7 +18,9 @@ metadata:
 spec:
   type: LoadBalancer
   ports:
-    - name: "5678"
-      port: 5678
-      targetPort: 5678
+    - name: "5432"
+      port: 5432
+      targetPort: 5432
       protocol: TCP
+  selector:
+    app: postgres
