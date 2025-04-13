@@ -43,7 +43,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: n8n-secret
-                  key: POSTGRES_NON_ROOT_USER
+                  key: DB_POSTGRESDB_USER
             - name: DB_POSTGRESDB_PASSWORD
               valueFrom:
                 secretKeyRef:
