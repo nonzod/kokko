@@ -1,12 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: n8n-lb
+  name: n8n
   namespace: n8n
 spec:
   selector:    
-    app: n8n
-  type: LoadBalancer
+    service: n8n
   ports:
     - name: "5678"
       port: 5678
