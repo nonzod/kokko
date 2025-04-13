@@ -3,7 +3,6 @@ kind: Kustomization
 namespace: postgres
 
 resources:
-- pvc.yaml
-- configmap.yaml
-- statefulset.yaml
-- service.yaml
+  - configmap.yaml
+  - statefulset.yaml
+  - service.yaml
