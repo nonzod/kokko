@@ -59,7 +59,7 @@ spec:
               cpu: "0.5"
             limits:
               memory: "2048Mi"
-              cpu: "2"
+              cpu: "1"
           volumeMounts:
             - mountPath: /home/node/.n8n
               name: n8n-claim0
