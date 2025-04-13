@@ -42,12 +42,12 @@ spec:
             - name: DB_POSTGRESDB_USER
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
+                  name: n8n-secret
                   key: POSTGRES_NON_ROOT_USER
             - name: DB_POSTGRESDB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
+                  name: n8n-secret
                   key: POSTGRES_NON_ROOT_PASSWORD
           image: n8nio/n8n
           name: n8n
