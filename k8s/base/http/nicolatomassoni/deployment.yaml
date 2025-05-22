@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nicolatomassoni-website
+  namespace: http
   labels:
     app: nicolatomassoni-website
 spec:
@@ -17,7 +18,7 @@ spec:
     spec:
       containers:
       - name: hugo
-        image: nonzod/nicolatomassoni-website:0.0.8-amd64
+        image: ghcr.io/nonzod/personal-website:latest
         ports:
         - containerPort: 80
         resources:
