@@ -5,5 +5,3 @@ metadata:
   namespace: domotica
 data:
   TZ: "Europe/Rome"
-  USERID: "1000"
-  GROUPID: "1000"
