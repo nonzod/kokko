@@ -30,3 +30,7 @@ spec:
       - name: ha-config
         persistentVolumeClaim:
           claimName: ha-config-pvc
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
