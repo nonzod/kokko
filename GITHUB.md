@@ -1,8 +1,14 @@
 # GitHub local runner
 
-Il personal token su GitHub è "kubensis", si aggiorna da (Personal Token)[https://github.com/settings/tokens]
+Il workflow è definito in `.github/workflows/deploy.yml` del progetto.
+I runner sono in `k8s/runner.yaml`
 
 ## Aggiornamento token
+
+Il personal token su GitHub è "kubensis", si aggiorna da (Personal Token)[https://github.com/settings/tokens]
+Questo token è settato anche in KOKKO_PAT sulle (actions secrets)[https://github.com/nonzod/personal-website/settings/secrets/actions]
+
+esempio con runner del sito personale hugo
 
 ```sh
 # aggiornamento secret
