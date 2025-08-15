@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: samba-homeassistant
+  namespace: domotica
+  labels:
+    app: samba-homeassistant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: samba-homeassistant
+  template:
+    metadata:
+      labels:
+        app: samba-homeassistant
+    spec:
+      containers:
+      - name: samba
+        image: dperson/samba:latest
+        ports:
+        - containerPort: 139
+          name: netbios
+        - containerPort: 445
+          name: cifs
+        env:
+        - name: USERID
+          valueFrom:
+            configMapKeyRef:
+              name: samba-config
+              key: USERID
+        - name: GROUPID
+          valueFrom:
+            configMapKeyRef:
+              name: samba-config
+              key: GROUPID
+        - name: TZ
+          valueFrom:
+            configMapKeyRef:
+              name: samba-config
+              key: TZ
+        command:
+        - /bin/bash
+        - -c
+        - |
+          samba.sh -u "homeassistant;$(cat /etc/samba-secret/password)" \
+                   -s "ha-config;/shared/ha-config;yes;no;no;homeassistant" \
+                   -p
+        resources:
+          limits:
+            memory: 256Mi
+            cpu: "0.2"
+          requests:
+            memory: 128Mi
+            cpu: "0.1"
+        volumeMounts:
+        - name: ha-config-data
+          mountPath: /shared/ha-config
+        - name: samba-credentials
+          mountPath: /etc/samba-secret
+          readOnly: true
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+      volumes:
+      - name: ha-config-data
+        hostPath:
+          path: /mnt/storage
+          type: Directory
+      - name: samba-credentials
+        secret:
+          secretName: samba-credentials
