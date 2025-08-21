@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dayz-config
+  namespace: dayz
+data:
+  serverDZ.cfg: |
+    hostname = "K8s DayZ Server";
+    maxPlayers = 60;
+    verifySignatures = 2;
+    forceSameBuild = 1;
+    disableVoN = 0;
+    vonCodecQuality = 20;
+    disable3rdPerson = 0;
+    disableCrosshair = 0;
+    disablePersonalLight = 1;
+    lightingConfig = 1;
+    serverTime = "SystemTime";
+    serverTimeAcceleration = 1;
+    serverNightTimeAcceleration = 1;
+    serverTimePersistent = 0;
+    guaranteedUpdates = 1;
+    loginQueueConcurrentPlayers = 5;
+    loginQueueMaxPlayers = 500;
+    instanceId = 1;
+    storeHouseStateDisabled = false;
+    enableDebugMonitor = 0;
+    allowFilePatching = 0;
+    simulatedPlayersBatch = 20;
+    multithreadedReplication = 1;
+    speedhackDetection = 1;
+    networkRangeClose = 20;
+    networkRangeNear = 150;
+    networkRangeFar = 1000;
+    networkRangeDistantEffect = 4000;
+    
+    class Missions
+    {
+        class DayZ
+        {
+            template="dayzOffline.chernarusplus";
+        };
+    };

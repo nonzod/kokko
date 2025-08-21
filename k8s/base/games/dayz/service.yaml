@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dayz-server-service
+  namespace: dayz
+spec:
+  type: LoadBalancer
+  selector:
+    app: dayz-server
+  ports:
+  - name: game-udp
+    port: 2302
+    targetPort: 2302
+    protocol: UDP
+  - name: game-udp2
+    port: 2303
+    targetPort: 2303
+    protocol: UDP
+  - name: game-udp3
+    port: 2304
+    targetPort: 2304
+    protocol: UDP
+  - name: game-udp4
+    port: 2305
+    targetPort: 2305
+    protocol: UDP
+  - name: query
+    port: 27016
+    targetPort: 27016
+    protocol: UDP

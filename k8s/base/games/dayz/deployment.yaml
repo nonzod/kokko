@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dayz-server
+  namespace: dayz
+  labels:
+    app: dayz-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dayz-server
+  template:
+    metadata:
+      labels:
+        app: dayz-server
+    spec:
+      containers:
+      - name: dayz-server
+        image: razorbladex401/dayz:latest
+        resources:
+          requests:
+            memory: 6Gi
+            cpu: "2"
+          limits:
+            memory: 8Gi
+            cpu: "3"
+        ports:
+        - containerPort: 2302
+          protocol: UDP
+          name: game-udp
+        - containerPort: 2303
+          protocol: UDP
+          name: game-udp2
+        - containerPort: 2304
+          protocol: UDP
+          name: game-udp3
+        - containerPort: 2305
+          protocol: UDP
+          name: game-udp4
+        - containerPort: 27016
+          protocol: UDP
+          name: query
+        env:
+        - name: SERVER_NAME
+          value: "K8s DayZ Server"
+        - name: SERVER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: dayz-secret
+              key: server-password
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: dayz-secret
+              key: admin-password
+        - name: MAX_PLAYERS
+          value: "60"
+        volumeMounts:
+        - name: dayz-data
+          mountPath: /dayz
+        - name: server-config
+          mountPath: /dayz/serverDZ.cfg
+          subPath: serverDZ.cfg
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+      volumes:
+      - name: dayz-data
+        persistentVolumeClaim:
+          claimName: dayz-server-pvc
+      - name: server-config
+        configMap:
+          name: dayz-config
+          defaultMode: 0644
