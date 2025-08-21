@@ -4,7 +4,6 @@ kind: Kustomization
 namespace: dayz
 
 resources:
-- namespace.yaml
 - secret.yaml
 - pvc.yaml
 - configmap.yaml

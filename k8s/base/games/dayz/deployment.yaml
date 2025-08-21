@@ -21,7 +21,7 @@ spec:
         resources:
           requests:
             memory: 6Gi
-            cpu: "2"
+            cpu: "1"
           limits:
             memory: 8Gi
             cpu: "3"
@@ -43,7 +43,7 @@ spec:
           name: query
         env:
         - name: SERVER_NAME
-          value: "K8s DayZ Server"
+          value: "MonteMalbe DayZ Server"
         - name: SERVER_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -73,3 +73,7 @@ spec:
         configMap:
           name: dayz-config
           defaultMode: 0644
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
