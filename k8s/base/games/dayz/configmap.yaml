@@ -5,7 +5,9 @@ metadata:
   namespace: dayz
 data:
   serverDZ.cfg: |
-    hostname = "K8s DayZ Server";
+    hostname = "Montemalbe DayZ Server";
+    password = "";
+    passwordAdmin = "porkoddio";
     maxPlayers = 60;
     verifySignatures = 2;
     forceSameBuild = 1;
@@ -41,3 +43,8 @@ data:
             template="dayzOffline.chernarusplus";
         };
     };
+    
+  BEServer_x64.cfg: |
+    RConPassword porkoddue
+    RConPort 2310
+    RConIP 127.0.0.1

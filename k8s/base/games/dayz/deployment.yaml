@@ -15,16 +15,18 @@ spec:
       labels:
         app: dayz-server
     spec:
+      serviceAccountName: dayz-restart-sa
       containers:
+      # Container principale DayZ
       - name: dayz-server
         image: razorbladex401/dayz:latest
         resources:
           requests:
-            memory: 6Gi
+            memory: 4Gi
             cpu: "1"
           limits:
-            memory: 8Gi
-            cpu: "3"
+            memory: 6Gi
+            cpu: "2"
         ports:
         - containerPort: 2302
           protocol: UDP
@@ -42,38 +44,90 @@ spec:
           protocol: UDP
           name: query
         env:
+        # Configurazione server base
         - name: SERVER_NAME
-          value: "MonteMalbe DayZ Server"
-        - name: SERVER_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: dayz-secret
-              key: server-password
-        - name: ADMIN_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: dayz-secret
-              key: admin-password
+          value: "K8s DayZ Server"
         - name: MAX_PLAYERS
           value: "60"
+        # Credenziali Steam dal secret
+        - name: STEAM_USER
+          valueFrom:
+            secretKeyRef:
+              name: dayz-secret
+              key: steam-username
+        - name: STEAM_PASS
+          valueFrom:
+            secretKeyRef:
+              name: dayz-secret
+              key: steam-password
         volumeMounts:
+        - name: steamcmd-data
+          mountPath: /steamcmd
         - name: dayz-data
           mountPath: /dayz
         - name: server-config
           mountPath: /dayz/serverDZ.cfg
           subPath: serverDZ.cfg
+        - name: battleye-config
+          mountPath: /dayz/battleye/BEServer_x64.cfg
+          subPath: BEServer_x64.cfg
         securityContext:
           runAsUser: 1000
           runAsGroup: 1000
+      
+      # Container SSH per management (opzionale)
+      - name: openssh-server
+        image: lscr.io/linuxserver/openssh-server:latest
+        ports:
+        - containerPort: 2222
+          name: ssh
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "Europe/Rome"
+        - name: PUBLIC_KEY_DIR
+          value: "/config/ssh/keys"
+        - name: USER_NAME
+          valueFrom:
+            secretKeyRef:
+              name: dayz-secret
+              key: ssh-username
+        - name: USER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: dayz-secret
+              key: ssh-password
+        volumeMounts:
+        - name: dayz-data
+          mountPath: /dayz
+        - name: openssh-config
+          mountPath: /config
+        resources:
+          requests:
+            memory: 128Mi
+            cpu: "100m"
+          limits:
+            memory: 256Mi
+            cpu: "200m"
+
       volumes:
+      - name: steamcmd-data
+        persistentVolumeClaim:
+          claimName: steamcmd-pvc
       - name: dayz-data
         persistentVolumeClaim:
           claimName: dayz-server-pvc
+      - name: openssh-config
+        persistentVolumeClaim:
+          claimName: openssh-config-pvc
       - name: server-config
         configMap:
           name: dayz-config
           defaultMode: 0644
-      dnsConfig:
-        options:
-          - name: ndots
-            value: "1"
+      - name: battleye-config
+        configMap:
+          name: dayz-config
+          defaultMode: 0644

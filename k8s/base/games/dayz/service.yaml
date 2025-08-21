@@ -8,6 +8,7 @@ spec:
   selector:
     app: dayz-server
   ports:
+  # Porte DayZ
   - name: game-udp
     port: 2302
     targetPort: 2302
@@ -28,3 +29,8 @@ spec:
     port: 27016
     targetPort: 27016
     protocol: UDP
+  # Porta SSH per management
+  - name: ssh
+    port: 2222
+    targetPort: 2222
+    protocol: TCP

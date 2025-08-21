@@ -1,3 +1,18 @@
+# PVC per SteamCMD
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: steamcmd-pvc
+  namespace: dayz
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
+---
+# PVC per DayZ server data (già esistente, aggiorno dimensione)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,4 +24,18 @@ spec:
   storageClassName: local-path
   resources:
     requests:
-      storage: 50Gi
+      storage: 100Gi  # Server DayZ richiede molto spazio
+---
+# PVC per configurazione SSH
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openssh-config-pvc
+  namespace: dayz
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi
