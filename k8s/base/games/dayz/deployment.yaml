@@ -112,7 +112,6 @@ spec:
           limits:
             memory: 256Mi
             cpu: "200m"
-
       volumes:
       - name: steamcmd-data
         persistentVolumeClaim:
@@ -131,3 +130,7 @@ spec:
         configMap:
           name: dayz-config
           defaultMode: 0644
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
