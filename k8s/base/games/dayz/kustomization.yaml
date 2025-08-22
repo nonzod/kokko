@@ -4,9 +4,9 @@ kind: Kustomization
 namespace: dayz
 
 resources:
-- pvc.yaml              # PVC aggiornati (steamcmd, dayz-data, openssh)
-- configmap.yaml        # ConfigMap con serverDZ.cfg e BEServer_x64.cfg
-- serviceaccount.yaml   # ServiceAccount, Role, RoleBinding per CronJob
-- deployment.yaml       # Deployment con DayZ + SSH container
-- service.yaml          # Service con porte DayZ + SSH
-- cronjob.yaml          # CronJob per restart automatico
+# Nuova configurazione DayZ basata su dayzdockerserver
+- pvc.yaml              # PVC multipli per volumi
+- configmaps.yaml       # ConfigMaps per configurazione
+- secret.yaml          # Secrets per credenziali Steam (da configurare)
+- deployment.yaml       # Deployment con container server + web
+- services.yaml         # Services aggiornati

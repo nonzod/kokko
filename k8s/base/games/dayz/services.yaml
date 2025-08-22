@@ -1,14 +1,17 @@
+# Service principale per DayZ server
 apiVersion: v1
 kind: Service
 metadata:
   name: dayz-server-service
   namespace: dayz
+  labels:
+    app: dayz-server
 spec:
   type: LoadBalancer
   selector:
     app: dayz-server
   ports:
-  # Porte DayZ
+  # Porte DayZ server
   - name: game-udp
     port: 2302
     targetPort: 2302
@@ -29,8 +32,21 @@ spec:
     port: 27016
     targetPort: 27016
     protocol: UDP
-  # Porta SSH per management
-  - name: ssh
-    port: 2222
-    targetPort: 2222
+---
+# Service per gestione web (se utilizzato)
+apiVersion: v1
+kind: Service
+metadata:
+  name: dayz-web-service
+  namespace: dayz
+  labels:
+    app: dayz-server
+spec:
+  type: ClusterIP
+  selector:
+    app: dayz-server
+  ports:
+  - name: web-management
+    port: 3000
+    targetPort: 3000
     protocol: TCP

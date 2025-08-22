@@ -15,18 +15,143 @@ spec:
       labels:
         app: dayz-server
     spec:
-      serviceAccountName: dayz-restart-sa
-      containers:
-      # Container principale DayZ
-      - name: dayz-server
-        image: razorbladex401/dayz:latest
+      # Init container per setup iniziale e build
+      initContainers:
+      - name: setup-repo
+        image: alpine/git:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          if [ ! -f /shared/setup-done ]; then
+            echo "Cloning dayzdockerserver repository..."
+            git clone https://ceregatti.org/git/daniel/dayzdockerserver.git /shared/repo
+            touch /shared/setup-done
+            echo "Repository cloned successfully"
+          else
+            echo "Setup already done, skipping..."
+          fi
+        volumeMounts:
+        - name: shared-setup
+          mountPath: /shared
         resources:
           requests:
-            memory: 4Gi
-            cpu: "1"
+            memory: "64Mi"
+            cpu: "0.1"
           limits:
-            memory: 6Gi
-            cpu: "2"
+            memory: "128Mi"
+            cpu: "0.2"
+      
+      containers:
+      # Container Web per gestione
+      - name: dayz-web
+        image: ubuntu:22.04
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # Setup iniziale
+          apt-get update && apt-get install -y \
+            curl wget gnupg2 software-properties-common \
+            python3 python3-pip build-essential
+          
+          # Installa Docker (per compatibilità script)
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+          add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+          apt-get update && apt-get install -y docker-ce-cli
+          
+          # Copy dei file dal repository
+          cp -r /shared/repo/* /app/
+          cd /app
+          
+          # Setup environment
+          echo "UID=1000" > .env
+          
+          # Mantieni container attivo per gestione
+          echo "Web container ready for management"
+          tail -f /dev/null
+        
+        ports:
+        - containerPort: 3000  # Porta per interfaccia web (se presente)
+        
+        env:
+        - name: UID
+          valueFrom:
+            configMapKeyRef:
+              name: dayz-env-config
+              key: UID
+        - name: TZ
+          valueFrom:
+            configMapKeyRef:
+              name: dayz-env-config
+              key: TZ
+        - name: STEAM_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: dayz-steam-secret
+              key: STEAM_USERNAME
+        - name: STEAM_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: dayz-steam-secret
+              key: STEAM_PASSWORD
+        
+        volumeMounts:
+        - name: shared-setup
+          mountPath: /shared
+        - name: serverfiles
+          mountPath: /app/serverfiles
+        - name: mods
+          mountPath: /app/mods
+        - name: homedir
+          mountPath: /app/homedir
+        - name: dayz-config
+          mountPath: /app/files/serverDZ.cfg
+          subPath: serverDZ.cfg
+        
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "0.2"
+          limits:
+            memory: "1Gi"
+            cpu: "0.5"
+      
+      # Container Server DayZ
+      - name: dayz-server
+        image: ubuntu:22.04
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # Setup iniziale simile al web container
+          apt-get update && apt-get install -y \
+            curl wget gnupg2 software-properties-common \
+            python3 python3-pip build-essential \
+            lib32gcc-s1 lib32stdc++6 steamcmd
+          
+          # Copy dei file dal repository
+          cp -r /shared/repo/* /app/
+          cd /app
+          
+          # Setup environment
+          echo "UID=1000" > .env
+          
+          # Aspetta che web container completi setup iniziale
+          echo "Waiting for initial setup..."
+          sleep 60
+          
+          # Installa server se non già presente
+          if [ ! -f /app/serverfiles/DayZServer ]; then
+            echo "Installing DayZ server files..."
+            # Usa gli script del progetto per installazione
+            /app/files/bin/dz install || echo "Install will be completed on first run"
+          fi
+          
+          # Avvia server
+          echo "Starting DayZ server..."
+          exec /app/files/bin/dz start
+        
         ports:
         - containerPort: 2302
           protocol: UDP
@@ -43,92 +168,80 @@ spec:
         - containerPort: 27016
           protocol: UDP
           name: query
+        
         env:
-        # Configurazione server base
-        - name: SERVER_NAME
-          value: "K8s DayZ Server"
-        - name: MAX_PLAYERS
-          value: "60"
-        # Credenziali Steam dal secret
-        - name: STEAM_USER
+        - name: UID
           valueFrom:
-            secretKeyRef:
-              name: dayz-secret
-              key: steam-username
-        - name: STEAM_PASS
-          valueFrom:
-            secretKeyRef:
-              name: dayz-secret
-              key: steam-password
-        volumeMounts:
-        - name: steamcmd-data
-          mountPath: /steamcmd
-        - name: dayz-data
-          mountPath: /dayz
-        - name: server-config
-          mountPath: /dayz/serverDZ.cfg
-          subPath: serverDZ.cfg
-        - name: battleye-config
-          mountPath: /dayz/battleye/BEServer_x64.cfg
-          subPath: BEServer_x64.cfg
-        securityContext:
-          runAsUser: 1000
-          runAsGroup: 1000
-      
-      # Container SSH per management (opzionale)
-      - name: openssh-server
-        image: lscr.io/linuxserver/openssh-server:latest
-        ports:
-        - containerPort: 2222
-          name: ssh
-        env:
-        - name: PUID
-          value: "1000"
-        - name: PGID
-          value: "1000"
+            configMapKeyRef:
+              name: dayz-env-config
+              key: UID
         - name: TZ
-          value: "Europe/Rome"
-        - name: PUBLIC_KEY_DIR
-          value: "/config/ssh/keys"
-        - name: USER_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: dayz-env-config
+              key: TZ
+        - name: STEAM_USERNAME
           valueFrom:
             secretKeyRef:
-              name: dayz-secret
-              key: ssh-username
-        - name: USER_PASSWORD
+              name: dayz-steam-secret
+              key: STEAM_USERNAME
+        - name: STEAM_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: dayz-secret
-              key: ssh-password
+              name: dayz-steam-secret
+              key: STEAM_PASSWORD
+        
         volumeMounts:
-        - name: dayz-data
-          mountPath: /dayz
-        - name: openssh-config
-          mountPath: /config
+        - name: shared-setup
+          mountPath: /shared
+        - name: serverfiles
+          mountPath: /app/serverfiles
+        - name: mods
+          mountPath: /app/mods
+        - name: homedir
+          mountPath: /app/homedir
+        - name: profiles
+          mountPath: /app/profiles
+        - name: servermpmissions
+          mountPath: /app/servermpmissions
+        - name: dayz-config
+          mountPath: /app/files/serverDZ.cfg
+          subPath: serverDZ.cfg
+        
         resources:
           requests:
-            memory: 128Mi
-            cpu: "100m"
+            memory: "4Gi"
+            cpu: "0.5"
           limits:
-            memory: 256Mi
-            cpu: "200m"
+            memory: "6Gi"
+            cpu: "1"
+      
       volumes:
-      - name: steamcmd-data
+      # Volume temporaneo per condivisione setup
+      - name: shared-setup
+        emptyDir: {}
+      
+      # Volumi persistenti
+      - name: serverfiles
         persistentVolumeClaim:
-          claimName: steamcmd-pvc
-      - name: dayz-data
+          claimName: dayz-serverfiles-pvc
+      - name: mods
         persistentVolumeClaim:
-          claimName: dayz-server-pvc
-      - name: openssh-config
+          claimName: dayz-mods-pvc
+      - name: homedir
         persistentVolumeClaim:
-          claimName: openssh-config-pvc
-      - name: server-config
+          claimName: dayz-homedir-pvc
+      - name: profiles
+        persistentVolumeClaim:
+          claimName: dayz-profiles-pvc
+      - name: servermpmissions
+        persistentVolumeClaim:
+          claimName: dayz-servermpmissions-pvc
+      
+      # ConfigMap per configurazione server
+      - name: dayz-config
         configMap:
-          name: dayz-config
-          defaultMode: 0644
-      - name: battleye-config
-        configMap:
-          name: dayz-config
+          name: dayz-server-config
           defaultMode: 0644
       dnsConfig:
         options:

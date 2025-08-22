@@ -1,8 +1,8 @@
-# PVC per SteamCMD
+# PVC per server files base DayZ
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: steamcmd-pvc
+  name: dayz-serverfiles-pvc
   namespace: dayz
 spec:
   accessModes:
@@ -10,13 +10,13 @@ spec:
   storageClassName: local-path
   resources:
     requests:
-      storage: 10Gi
+      storage: 10Gi  # 2.7GB base + spazio aggiuntivo
 ---
-# PVC per DayZ server data (già esistente, aggiorno dimensione)
+# PVC per mods Steam Workshop
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: dayz-server-pvc
+  name: dayz-mods-pvc
   namespace: dayz
 spec:
   accessModes:
@@ -24,13 +24,13 @@ spec:
   storageClassName: local-path
   resources:
     requests:
-      storage: 100Gi  # Server DayZ richiede molto spazio
+      storage: 50Gi  # Spazio per mods (possono essere molto grandi)
 ---
-# PVC per configurazione SSH
+# PVC per home directory (SteamCMD)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: openssh-config-pvc
+  name: dayz-homedir-pvc
   namespace: dayz
 spec:
   accessModes:
@@ -38,4 +38,32 @@ spec:
   storageClassName: local-path
   resources:
     requests:
-      storage: 1Gi
+      storage: 5Gi
+---
+# PVC per profiles server
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dayz-profiles-pvc
+  namespace: dayz
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+---
+# PVC per server mpmissions
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dayz-servermpmissions-pvc
+  namespace: dayz
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
