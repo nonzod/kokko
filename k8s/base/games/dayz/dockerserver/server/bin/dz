@@ -1,0 +1,696 @@
+#!/usr/bin/env bash
+
+source dz-common
+
+# Server container base directories
+MPMISSIONS="${SERVER_FILES}/mpmissions"
+
+mkdir -p "${SERVER_PROFILE}"/battleye
+
+# Server configuration file
+SERVER_CFG_FILE="serverDZ.cfg"
+SERVER_CFG_DST="${SERVER_PROFILE}/${SERVER_CFG_FILE}"
+SERVER_CFG_SRC="${FILES}/${SERVER_CFG_FILE}"
+SERVER_CFG_SAVE="${SERVER_PROFILE}/${SERVER_CFG_FILE}.save"
+
+# Command line parameters except mod, as that is handled separately.
+parameters="-config=${SERVER_CFG_DST} -port=${port} -freezecheck -BEpath=${SERVER_PROFILE}/battleye -profiles=${SERVER_PROFILE} -nologs"
+
+# Where mods are installed.
+WORKSHOP_DIR="/mods/${release_client_appid}"
+
+# Backups
+BACKUP_DIR="${HOME}/backup"
+if [ ! -d "${BACKUP_DIR}" ]
+then
+	mkdir -p "${BACKUP_DIR}"
+fi
+
+mod_command_line=""
+server_command_line=""
+
+# Functions
+
+# Usage
+usage(){
+  echo -e "
+${red}Bad option or arguments! ${yellow}${*}${default}
+
+Usage: ${green}$(basename $0)${yellow} option [ arg1 [ arg2 ] ]
+
+Options and arguments:
+
+  a|activate id - Activate an installed DayZ Workshop items by id or index
+  b|backup - Backup the mission storage files in all mission directories
+  c|config - Update the internal serverDZ.cfg file from files/serverDZ.cfg on the host. Presents a unified diff if the internal file doesn't match the host file
+  d|deactivate id - Deactivate an installed DayZ Workshop items by id or index - Keeps the mod files but excludes it from the mod parameter
+  f|force - Forcibly kill the server. Use only as a last resort if the server won't shut down
+  l|list - List Workshop items and their details
+  n|rcon - Connect to the server using a python RCON client
+  r|restart - Restart the server without restarting the container
+  s|status - Shows the server's status: Running, uptime, mods, parameters, mod parameter, etc.
+  stop - Stop the server
+  w|wipe - Wipes the current storage_1
+${default}"
+  exit 1
+}
+
+loadconfig(){
+	if [ ! -f "${SERVER_INSTALL_FILE}" ]
+	then
+		echo
+		echo -e "The DayZ server files are not installed. You need to do this first in the web UI."
+		echo
+		exit 1
+	fi
+	# Handle the initial server configuration file
+	if [ ! -f ${SERVER_CFG_SAVE} ]
+	then
+		echo "Creating initial server configuration file"
+		cp "${SERVER_CFG_SRC}" "${SERVER_CFG_SAVE}"
+	fi
+	# battleye config and rconpassword setup
+	# The server creates a new file from this file, which it then uses.
+	# Let's make sure to delete it first
+	BE_SERVER_FILE="${SERVER_PROFILE}/battleye/beserver_x64.cfg"
+	ALT_BE_SERVER_FILE=$(find ${SERVER_PROFILE}/battleye -name "beserver_x64_active*")
+	if [ ! -f "${BE_SERVER_FILE}" ] && [ ! -f "${ALT_BE_SERVER_FILE}" ]
+	then
+		passwd=$(openssl rand -base64 8 | tr -dc 'A-Za-z0-9')
+		if [ "${passwd}" == "" ]
+		then
+			passwd=$(< /dev/urandom tr -dc 'A-Za-z0-9' | head -c10)
+		fi
+		if [ "${passwd}" == "" ]
+		then
+			printf "[ ${red}FAIL${default} ] Could not generate a passwort for RCON!\n"
+			exit 1
+		else
+			cat > "${BE_SERVER_FILE}" <<EOF
+RConPassword ${passwd}
+RestrictRCon 0
+RConPort ${rcon_port}
+EOF
+		fi
+		printf "[ ${cyan}INFO${default} ] New RCON password: ${yellow}${passwd}${default}\n"
+	else
+		if [ -f "${BE_SERVER_FILE}" ]
+		then
+			FILE="${BE_SERVER_FILE}"
+		elif [ -f "${ALT_BE_SERVER_FILE}" ]
+		then
+			FILE="${ALT_BE_SERVER_FILE}"
+		fi
+		passwd=$(grep RConPassword ${FILE} | awk '{print $2}')
+#		printf "[ ${cyan}INFO${default} ] Using existing RCON password: ${yellow}${passwd}${default}\n"
+	fi
+}
+
+# Make sure to clean up and report on exit, as these files remain in the container's volume
+report() {
+	if [[ ${DONT_START} != "" ]]
+	then
+		exit 0
+	fi
+	rm -f /tmp/mod_command_line /tmp/server_command_line /tmp/parameters
+	echo
+	echo -e "${yellow}========================================== error.log =========================================="
+	find "${SERVER_PROFILE}" -name error.log -exec head {} \; -exec tail -n 30 {} \; -exec rm -f {} \;
+	echo
+	echo -e "========================================== script*.log ========================================"
+	find "${SERVER_PROFILE}" -name "script*.log" -exec head {} \; -exec tail -n 30 {} \; -exec rm -f {} \;
+	echo
+	echo -e "========================================== *.RPT =============================================="
+	find "${SERVER_PROFILE}" -name "*.RPT" -exec ls -la {} \; -exec tail -n 30 {} \; -exec rm -f {} \;
+	echo
+	echo -e "========================================== End log ======================================${default}"
+	# Back these files up into a new directory with the current time stamp in the name
+	DIR="${SERVER_PROFILE}/logs/$(date +%Y-%m-%d-%H-%M-%S)"
+	mkdir -p ${DIR}
+	pushd ${SERVER_PROFILE} > /dev/null
+	mv -v *.log *.RPT *.mdmp ${DIR} 2> /dev/null || true
+	popd > /dev/null
+}
+
+mergexml(){
+	echo
+
+	# Bring all base files into the working directories.
+
+	# Copy the pristine files from upstream
+	echo -e "${green}Copying upstream files into local mpmissions for map ${MAP}${default}":
+	# Not all maps have all files, so we need to check for their existence before copying them
+	for i in "cfgeconomycore.xml" "cfgenvironment.xml" "cfgeventgroups.xml" "cfgeventspawns.xml" "cfggameplay.json" "cfgweather.xml" "init.c"
+	do
+		if [ -f /mpmissions/${MAP}/${i} ]
+		then
+			cp -v /mpmissions/${MAP}/${i} ${MPMISSIONS}/${MAP}/${i}
+		else
+			# Copy it from the Chernarus map
+			echo "The map ${MAP} does not have a ${i} file, copying from Chernarus..."
+			cp -v /mpmissions/dayzOffline.chernarusplus/${i} ${MPMISSIONS}/${MAP}/${i}
+		fi
+	done
+
+	# Same for any files in the db subdirectory we may modify
+	find /mpmissions/${MAP}/db \( \
+		-name "messages.xml" \
+	\) -exec cp -v {} ${SERVER_FILES}{} \;
+
+	# For now let's just replace the file instead of merging, as the upstream file has nothing in it.
+	if [ -f ${FILES}/messages.xml ]
+	then
+		cp -v ${FILES}/messages.xml ${MPMISSIONS}/${MAP}/db/messages.xml
+	fi
+
+	echo
+
+	# Remove previously copied keys and restore the default key
+	echo -e "${green}Resetting keys${default}"
+	mv ${SERVER_FILES}/keys/dayz.bikey /tmp
+	rm -rf ${SERVER_FILES}/keys/*
+	mv /tmp/dayz.bikey ${SERVER_FILES}/keys
+
+	# Copy all active mod keys
+	for link in $(ls -tdr ${SERVER_PROFILE}/@* 2> /dev/null)
+	do
+		ID=$(readlink ${link} | awk -F/ '{print $NF}')
+		MODNAME=$(get_mod_name ${ID})
+		echo -n "Copying key file(s) for mod ${MODNAME}: "
+		find ${WORKSHOP_DIR}/${ID} -name "*.bikey" -exec cp -v {} "${SERVER_FILES}/keys/" \;
+	done
+
+	# Follow https://community.bistudio.com/wiki/DayZ:Central_Economy_mission_files_modding
+	# Remove any existing files, via the mod_ and custom_ prefixes
+	rm -rf ${MPMISSIONS}/${MAP}/mod_*
+	rm -rf ${MPMISSIONS}/${MAP}/custom_*
+	for link in $(ls -tdr ${SERVER_PROFILE}/@* 2> /dev/null)
+	do
+		ID=$(readlink ${link} | awk -F/ '{print $NF}')
+		C=""
+		FOUND=0
+		# This loop handles Central Economy files
+		# A matrix of file names -> root node -> child node permutations
+		for i in "CFGSPAWNABLETYPES:spawnabletypes:type" "EVENTS:events:event" "TYPES:types:type"
+		do
+			var=$(echo ${i} | cut -d: -f1)
+			CHECK=$(echo ${i} | cut -d: -f2)
+			CHILD=$(echo ${i} | cut -d: -f3)
+			if [ -f "${WORKSHOP_DIR}/${ID}/${var,,}.xml" ]
+			then
+				if [[ ${FOUND} = 0 ]]
+				then
+					MODNAME=$(get_mod_name ${ID})
+					echo
+					echo -e "${green}Adding mod integration ${MODNAME}${default}"
+					FOUND=1
+				fi
+				echo -n "Copy "
+				mkdir -p ${MPMISSIONS}/${MAP}/mod_${ID}
+				cp -v ${WORKSHOP_DIR}/${ID}/${var,,}.xml ${MPMISSIONS}/${MAP}/mod_${ID}/${var,,}.xml
+				C+="-s / -t elem -n file -a /file -t attr -n name -v ${var,,}.xml -a /file -t attr -n type -v ${CHECK} -m /file /ce "
+			fi
+		done
+		if [[ ${C} != "" ]]
+		then
+			# Merge into the current mpmissions file
+			echo "Create new XML node <ce folder=\"mod_${ID}\"> -> ${MPMISSIONS}/${MAP}/cfgeconomycore.xml"
+			find ${MPMISSIONS}/${MAP} -name cfgeconomycore.xml -exec \
+				xmlstarlet ed -L -s / -t elem -n ce \
+				-a /ce -t attr -n folder -v "mod_${ID}" ${C} \
+				-m /ce /economycore {} \;
+		fi
+		# These are merged directly into the upstream file
+		for i in "CFGEVENTGROUPS:eventgroupdef:group" "CFGEVENTSPAWNS:eventposdef:event" "CFGENVIRONMENT:env:territories/territory"
+		do
+			var=$(echo ${i} | cut -d: -f1)
+			CHECK=$(echo ${i} | cut -d: -f2)
+			CHILD=$(echo ${i} | cut -d: -f3)
+			if [ -f "${WORKSHOP_DIR}/${ID}/${var,,}.xml" ]
+			then
+				echo "Merge XML ${WORKSHOP_DIR}/${ID}/${var,,}.xml -> ${MPMISSIONS}/${MAP}/${var,,}.xml"
+				rm -f /tmp/x /tmp/y
+				xmlmerge -o /tmp/x ${WORKSHOP_DIR}/${ID}/${var,,}.xml ${MPMISSIONS}/${MAP}/${var,,}.xml
+				xmlstarlet fo /tmp/x > /tmp/y
+				# Ensure the XML is valid
+				xmllint --noout /tmp/y || (
+					echo
+					echo "Merged XML file ${MPMISSIONS}/${MAP}/${var,,}.xml is not valid! Can't continue!"
+					echo
+					exit 1
+				)
+				mv /tmp/y ${MPMISSIONS}/${MAP}/${var,,}.xml
+			fi
+		done
+		# These are merged directly into the upstream file, but are JSON
+		for var in "CFGGAMEPLAY"
+		do
+			if [ -f "${WORKSHOP_DIR}/${ID}/${var,,}.json" ]
+			then
+				if [[ ${FOUND} = 0 ]]
+				then
+					MODNAME=$(get_mod_name ${ID})
+					echo
+					echo -e "${green}Adding mod integration ${MODNAME}${default}"
+					FOUND=1
+				fi
+				echo "Merge JSON '${WORKSHOP_DIR}/${ID}/${var,,}.json' -> '${MPMISSIONS}/${MAP}/${var,,}.json'"
+				rm -f /tmp/x /tmp/y
+				jq -s '.[0] * .[1]' ${MPMISSIONS}/${MAP}/${var,,}.json ${WORKSHOP_DIR}/${ID}/${var,,}.json > /tmp/x
+				mv /tmp/x ${MPMISSIONS}/${MAP}/${var,,}.json
+			fi
+		done
+		# These are merged directly into the upstream file, but are C
+		for var in "INIT"
+		do
+			if [ -f "${WORKSHOP_DIR}/${ID}/${var,,}.c.${MAP}" ]
+			then
+				if [[ ${FOUND} = 0 ]]
+				then
+					MODNAME=$(get_mod_name ${ID})
+					echo
+					echo -e "${green}Adding mod integration ${MODNAME}${default}"
+					FOUND=1
+				fi
+				echo "Patch '${WORKSHOP_DIR}/${ID}/${var,,}.c(.diff)' -> '${MPMISSIONS}/${MAP}/${var,,}.c'"
+				patch -s -p0 ${MPMISSIONS}/${MAP}/${var,,}.c.${MAP} < ${WORKSHOP_DIR}/${ID}/${var,,}.c || (
+					echo "Patch failed!"
+					exit 1
+				)
+			fi
+		done
+		# These are copied verbatim
+		for var in "CFGWEATHER"
+		do
+			if [ -f "${WORKSHOP_DIR}/${ID}/${var,,}.xml" ]
+			then
+				if [[ ${FOUND} = 0 ]]
+				then
+					MODNAME=$(get_mod_name ${ID})
+					echo
+					echo -e "${green}Adding mod integration ${MODNAME}${default}"
+					FOUND=1
+				fi
+				echo "Copy -> '${WORKSHOP_DIR}/${ID}/${var,,}.xml' -> '${MPMISSIONS}/${MAP}/${var,,}.xml'"
+				cp ${WORKSHOP_DIR}/${ID}/${var,,}.xml ${MPMISSIONS}/${MAP}/${var,,}.xml
+			fi
+		done
+		# Here are where start actions happen
+		if [ -f "${WORKSHOP_DIR}/${ID}/start.sh" ]
+		then
+			echo "Running start script -> ${WORKSHOP_DIR}/${ID}/start.sh"
+			pushd ${MPMISSIONS}/${MAP} > /dev/null
+			bash -x "${WORKSHOP_DIR}/${ID}/start.sh"
+			popd > /dev/null
+		fi
+	done
+	if [ -d ${SERVER_PROFILE}/custom ]
+	then
+		for dir in $(ls ${SERVER_PROFILE}/custom 2> /dev/null)
+		do
+			FOUND=0
+			C=""
+			for i in "CFGEVENTGROUPS:eventgroupdef:group" "CFGSPAWNABLETYPES:spawnabletypes:type" "EVENTS:events:event" "TYPES:types:type" "GLOBALS:globals:var"
+			do
+				var=$(echo ${i} | cut -d: -f1)
+				CHECK=$(echo ${i} | cut -d: -f2)
+				CHILD=$(echo ${i} | cut -d: -f3)
+				if [ -f "${SERVER_PROFILE}/custom/${dir}/${var,,}.xml" ]
+				then
+					if [[ ${FOUND} = 0 ]]
+					then
+						echo
+						echo -e "${green}Adding custom integration ${dir}${default}"
+						FOUND=1
+					fi
+					mkdir -p ${MPMISSIONS}/${MAP}/custom_${dir}
+					echo -n "Copy "
+					cp -v ${SERVER_PROFILE}/custom/${dir}/${var,,}.xml ${MPMISSIONS}/${MAP}/custom_${dir}/${var,,}.xml
+					C+="-s / -t elem -n file -a /file -t attr -n name -v ${var,,}.xml -a /file -t attr -n type -v ${CHECK} -m /file /ce "
+				fi
+			done
+			if [[ ${C} != "" ]]
+			then
+				# Merge into the current mpmissions file
+				echo "Create new XML node <ce folder=\"custom_${dir}\"> -> ${MPMISSIONS}/${MAP}/cfgeconomycore.xml"
+				find ${MPMISSIONS}/${MAP} -name cfgeconomycore.xml -exec \
+					xmlstarlet ed -L -s / -t elem -n ce \
+					-a /ce -t attr -n folder -v "custom_${dir}" ${C} \
+					-m /ce /economycore {} \;
+			fi
+			# These are merged directly into the upstream file, but are JSON
+			for var in "CFGGAMEPLAY"
+			do
+				if [ -f "${SERVER_PROFILE}/custom/${dir}/${var,,}.json" ]
+				then
+					if [[ ${FOUND} = 0 ]]
+					then
+						echo
+						echo -e "${green}Adding custom integration ${dir}${default}"
+						FOUND=1
+					fi
+					echo "Merge JSON '${SERVER_PROFILE}/custom/${dir}/${var,,}.json' -> '${MPMISSIONS}/${MAP}/${var,,}.json'"
+					rm -f /tmp/x /tmp/y
+					jq -s '.[0] * .[1]' ${MPMISSIONS}/${MAP}/${var,,}.json ${SERVER_PROFILE}/custom/${dir}/${var,,}.json > /tmp/x
+					mv /tmp/x ${MPMISSIONS}/${MAP}/${var,,}.json
+				fi
+			done
+			if [[ ${FOUND} = 1 ]]
+			then
+				# Copy any other files in the mod directory into a custom directory under mpmissions
+				mkdir -p ${MPMISSIONS}/${MAP}/custom_${dir}
+				for file in $(ls ${SERVER_PROFILE}/custom/${dir} 2> /dev/null)
+				do
+					if ! [ -f ${MPMISSIONS}/${MAP}/custom_${dir}/${file} ]
+					then
+						echo -n "Additional Copy "
+						cp -av ${SERVER_PROFILE}/custom/${dir}/${file} ${MPMISSIONS}/${MAP}/custom_${dir}
+					fi
+				done
+			fi
+		done
+	fi
+}
+
+# Start the server in the foreground
+start(){
+	# If we're developing, just block the container
+	if [[ ${DEVELOPMENT} = "1" ]] && [[ ${DONT_START} = "" ]]
+	then
+		echo "DEVELOPMENT mode, blocking. Unset DEVELOPMENT in the current environment to run the server."
+		trap '
+			echo "Caught SIGTERM/SIGINT..."
+			exit 0
+		' SIGTERM SIGINT
+		tail -f /dev/null &
+		wait $!
+		exit 0
+	fi
+	# Clean up from previous runs
+	rm -f ${SERVER_FILES}/dont_restart
+	# Ensure mpmissions has at least one map. If not, copy it from the local read-only volume that stores pristine mpmissons directories
+	if [ ! -d "${MPMISSIONS}/${MAP}" ] && [ -d "/mpmissions/${MAP}" ]
+	then
+		echo
+		echo "Performing one-time copy of ${MAP} mpmissions..."
+		echo
+		cp -av /mpmissions/${MAP} ${MPMISSIONS}
+	fi
+	get_mods
+	mergexml
+	if [[ ${DONT_START} != "" ]]
+	then
+		echo
+		echo "Not starting server, as DONT_START is set"
+		echo
+		exit 0
+	fi
+	echo
+	cd ${SERVER_FILES}
+	# Run the server. Allow docker to restart the container if the script exits with a code other than 0. This is so we can
+	# safely shut the container down without killing the server within.
+	printf "[ ${green}DayZ${default} ] Server starting...\n"
+	# Save the mod command line and parameters that were used to start the server, so status reflects the running server's
+	# actual status with those
+	echo ${mod_command_line} > /tmp/mod_command_line
+	echo ${server_command_line} > /tmp/server_command_line
+	echo ${parameters} > /tmp/parameters
+	# Add the steam port from the environment
+	cp -a "${SERVER_CFG_SAVE}" "${SERVER_CFG_DST}"
+	if [[ ${STEAM_PORT} != "" ]]
+	then
+		sed -e "s,^steamQueryPort.*,steamQueryPort = ${STEAM_PORT};," -i "${SERVER_CFG_DST}"
+	fi
+	./DayZServer "${mod_command_line}" "${server_command_line}" ${parameters}
+	EXIT_CODE=$?
+	printf "\n[ ${yellow}DayZ${default} ] Server exited. Exit code: ${EXIT_CODE}\n"
+	report
+	if [ -f ${SERVER_FILES}/dont_restart ]
+	then
+		printf "\n[ ${red}DayZ${default} ] Server script exiting, container shutting down...\n"
+	else
+		printf "\n[ ${green}DayZ${default} ] Restarting server\n"
+		exec dz start
+	fi
+	exit 0
+}
+
+# Restarts the server by forcing an exit code other than 0, causing docker to restart the container.
+restart(){
+	echo "Restarting DayZ server..."
+	kill -TERM $(pidof DayZServer)
+}
+
+# Stops the server but does not restart it.
+stop(){
+	echo "Stopping DayZ server..."
+	touch "${SERVER_FILES}/dont_restart"
+	kill -TERM $(pidof DayZServer)
+}
+
+# Forcibly kill the server, should it be necessary.
+force(){
+	echo "Forcibly stopping DayZ server..."
+	kill -KILL $(pidof DayZServer)
+}
+
+# Handle any changes in the server config file by allowing them to be merged after viewing a diff.
+config(){
+	if ! diff -q "${SERVER_CFG_SAVE}" "${SERVER_CFG_SRC}"
+	then
+		echo "========================================================================="
+		diff -Nau --color "${SERVER_CFG_SAVE}" "${SERVER_CFG_SRC}" | more
+		echo "========================================================================="
+		if prompt_yn "The new server configuration file differs from what's installed. Use it?"
+		then
+			echo "Updating the server configuration file"
+			cp "${SERVER_CFG_SRC}" "${SERVER_CFG_SAVE}"
+		else
+			echo "NOT updating the server configuration file"
+		fi
+	else
+		echo "No differences found between ${SERVER_CFG_SRC} and ${SERVER_CFG_SAVE}"
+	fi
+}
+
+# Activate / Deactivate a mod
+activate(){
+	# W(hich?) a or d
+	W=${1}
+	# Pop that off so we can loop over the rest
+	shift
+	# Default values are when activating
+	WW=""
+	COLOR="${green}"
+	if [[ ${W} = 0 ]]
+	then
+		# Deactivating instead
+		WW="de"
+		COLOR="${red}"
+	fi
+	# Check if the first argument is the word 'all'
+	if [[ ${1} = 'all' ]]
+	then
+		Q=$(ls -la ${SERVER_PROFILE}/@* | wc -l)
+		M=$(seq ${Q} | tac)
+	else
+		M="${@}"
+	fi
+	# Loop over the rest of the argument(s)
+	for i in ${M}
+	do
+		# Get the mod id and name
+		ID=$(get_mod_id ${i} ${W})
+		MODNAME=$(get_mod_name ${ID})
+		# Toggle state or report nothing burger
+		pushd "${SERVER_PROFILE}" > /dev/null
+		if [[ ${W} = 0 ]] && [ -L "${SERVER_PROFILE}/@${MODNAME}" ]
+		then
+			echo -n "Removing mod symlink: "
+			rm -vf "${SERVER_PROFILE}/@${MODNAME}"
+		elif [[ ${W} = 1 ]]
+		then
+			echo -n "Creating mod symlink: "
+			ln -sfv "${WORKSHOP_DIR}/${ID}" "${SERVER_PROFILE}/@${MODNAME}"
+		else
+			echo -e "Mod id ${ID} - ${COLOR}${MODNAME}${default} - is already ${WW}active"
+		fi
+		echo -e "Mod id ${ID} - ${COLOR}${MODNAME}${default} ${WW}activated"
+		popd > /dev/null
+	done
+}
+
+# List mods
+activelist(){
+	X=1
+	C="${green}"
+	spaces="                            "
+	have=no
+	for link in $(ls -tdr ${SERVER_PROFILE}/@* 2> /dev/null)
+	do
+		if [[ ${have} = "no" ]]
+		then
+			have="yes"
+			echo -e "\n     ID         Name                              URL                                                                Size"
+			echo "-------------------------------------------------------------------------------------------------------------------------"
+		fi
+		ID=$(readlink ${link} | awk -F/ '{print $NF}')
+		MODNAME=$(get_mod_name ${ID})
+		SIZE=$(du -sh "${WORKSHOP_DIR}/${ID}" | awk '{print $1}')
+		printf "${C}%.3d  %s %.30s    %s  https://steamcommunity.com/sharedfiles/filedetails/?id=%s  %s${default}\n" ${X} ${ID} "${MODNAME}" "${spaces:${#MODNAME}}" ${ID} ${SIZE}
+		X=$((X+1))
+	done
+	if [[ ${have} = "no" ]]
+	then
+		echo -ne "${red}none${default}"
+	fi
+}
+
+get_map_name(){
+  MAP="none"
+  # Map name
+  if [[ -f ${SERVER_CFG_SAVE} ]]
+  then
+    MAP=$(grep -E "template=" ${SERVER_CFG_SAVE} | grep -vE "^//" | cut -d= -f2 | cut -d\; -f1 | tr -d '"')
+  fi
+  echo ${MAP}
+}
+
+# Display the status of everything
+status(){
+	loadconfig
+	INSTALLED="${NO}"
+	RUNNING="${NO}"
+	# DayZ Server files installation
+	if [ -f "${SERVER_INSTALL_FILE}" ]
+	then
+		INSTALLED="${YES}"
+	fi
+	# Running or not
+	if pidof DayZServer > /dev/null
+	then
+		# Uptime
+		D=$(date +%s)
+		F=$(date +%s -r /tmp/parameters)
+		DAYS=$(( (${D} - ${F}) / 86400 ))
+		UPTIME="${DAYS} days "$(date -d@$(($(date +%s) - $(date +%s -r /tmp/parameters))) -u +"%H hours %M minutes %S seconds")
+		RUNNING="${YES}\nUptime: ${green}${UPTIME}${default}"
+		# Current parameters
+		RUNNING="${RUNNING}\nRunning parameters: ${green}$(cat /tmp/parameters)\nRunning mod parameter: $(cat /tmp/mod_command_line)${default}"
+		RUNNING="${RUNNING}\nRunning server parameter: ${green}$(cat /tmp/server_command_line)${default}"
+	fi
+	# Map
+	MAP=${MAP}
+	# Number of mods plus the list denoting on or off
+	echo
+	echo -ne "Server files installed: ${INSTALLED}"
+	if [[ "${INSTALLED}" = "${NO}" ]]
+	then
+		echo
+		echo
+		exit 0
+	fi
+	get_mods
+	echo -ne "
+Active mods: "
+	activelist
+	echo -e "${MODS}
+Server running: ${RUNNING}
+Working parameters: ${yellow}${parameters}${default}
+Working mod parameter: ${yellow}${mod_command_line}${default}
+Working server parameter: ${yellow}${server_command_line}${default}"
+	if [[ "${INSTALLED}" = "${YES}" ]]
+	then
+		echo -e "Map: ${green}${MAP}${default}"
+		echo -e "Version: ${green}${VERSION}${default}"
+	fi
+	echo
+}
+
+backup(){
+	cd ${MPMISSIONS}
+	DATE=$(date +'%Y-%m-%d-%H-%M-%S')
+	for i in $(ls)
+	do
+		B="${BACKUP_DIR}/${DATE}/"
+		echo "Backing up ${i} to ${B}..."
+		mkdir -p ${B} 1> /dev/null
+		cp -a "${i}" "${B}"
+	done
+	cp -a /profiles ${B}
+}
+
+wipe(){
+	DIR="${MPMISSIONS}/${MAP}/storage_1"
+	if ! [ -d "${DIR}" ]
+	then
+		echo "Storage directory ${DIR} does not exist"
+		return
+	fi
+	if prompt_yn "Wipe server storage directory '${DIR}'?"
+	then
+		rm -rf "${DIR}"
+		echo "Storage ${DIR} removed"
+	else
+		echo "Storage directory ${DIR} NOT removed..."
+	fi
+}
+
+MAP=$(get_map_name)
+
+# Capture the first argument and shift it off so we can pass $@ to every function
+C=${1}
+shift || {
+	usage
+}
+
+case "${C}" in
+	a|activate)
+		activate 1 "${@}"
+		;;
+	add)
+		add "${@}"
+		;;
+	b|backup)
+		backup "${@}"
+		;;
+	c|config)
+		config "${@}"
+		;;
+	d|deactivate)
+		activate 0 "${@}"
+		;;
+	f|force)
+		force
+		;;
+	i|install)
+		install "${@}"
+		;;
+	l|list)
+		list "${@}"
+		;;
+	login)
+		login "${@}"
+		;;
+	n|rcon)
+		rcon "${@}"
+		;;
+	r|restart)
+		restart "${@}"
+		;;
+	start)
+		start "${@}"
+		;;
+	s|status)
+		status "${@}"
+		;;
+	stop)
+		stop "${@}"
+		;;
+	w|wipe)
+		wipe "${@}"
+		;;
+	*)
+		usage "$*"
+	;;
+esac

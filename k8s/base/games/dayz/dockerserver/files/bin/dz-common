@@ -1,0 +1,213 @@
+#!/usr/bin/env bash
+
+set -eEa
+
+# If you want/need the server and rcon ports to be different, set them here.
+# The steam query port is set in serverDZ.cfg.
+
+# Server port. Set these in the .env file for the container.
+if [[ ${SERVER_PORT} = "" ]]
+then
+	export SERVER_PORT=2302
+fi
+
+if [[ ${RCON_PORT} = "" ]]
+then
+	export RCON_PORT=2303
+fi
+
+export port=${SERVER_PORT}
+export rcon_port=${RCON_PORT}
+
+# Don't change anything else.
+
+# Colors
+export default="\e[0m"
+export red="\e[31m"
+export green="\e[32m"
+export yellow="\e[93m"
+export lightblue="\e[94m"
+export blue="\e[34m"
+export magenta="\e[35m"
+export cyan="\e[36m"
+
+# DayZ release server Steam app ID.
+# Now that the Linux server is released, the binaries will come from this ID.
+export release_server_appid=223350
+
+# Allow for the use of experimental via an environment variable
+if [[ ${EXPERIMENTAL} != "" ]]
+then
+	export release_server_appid=1042420
+fi
+
+# DayZ release client SteamID. This is for mods, as only the release client has them.
+export release_client_appid=221100
+
+# Server container profile directory
+export SERVER_PROFILE="/profiles"
+
+# Common container base directories
+export FILES="/files"
+export SERVER_FILES="/serverfiles"
+
+# Used to check if dayZ is installed
+export SERVER_INSTALL_FILE="${SERVER_FILES}/DayZServer"
+
+if [ -f ${SERVER_INSTALL_FILE} ]
+then
+        # Release or Experimental
+        if [[ ${release_server_appid} = "223350" ]]
+        then
+                RELEASE="Stable"
+        else
+                RELEASE="Experimental"
+        fi
+	VERSION=$(strings /serverfiles/DayZServer | grep -P "1\.\d{2}\.\d{6}")" - ${RELEASE}"
+fi
+
+# Steam files
+export STEAM_LOGIN="${HOME}/steamlogin"
+export STEAMCMD=steamcmd
+
+# Other stuff
+export YES="${green}yes${default}"
+export NO="${red}no${default}"
+
+# Convenience function
+prompt_yn(){
+	echo -n "${1} (y|N) " >&2
+	read -s -n 1 a
+	a=$(echo ${a} | tr A-Z a-z)
+	echo
+	if [[ "${a}" = "y" ]]
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
+# List mods. Highlight the ones that are active when run from the server script.
+list(){
+	X=1
+	spaces="                            "
+	FIRST=1
+	for link in $(ls -d ${SERVER_FILES}/@* 2> /dev/null | sort)
+	do
+		if [[ ${FIRST} = 1 ]]
+		then
+			echo "Installed mods:"
+			echo -e "     ID         Name                              URL                                                                Size"
+			echo "-------------------------------------------------------------------------------------------------------------------------"
+			FIRST=0
+		fi
+		ID=$(readlink ${link} | awk -F/ '{print $NF}')
+		MODNAME=$(get_mod_name ${ID})
+		SIZE=$(du -sh "${WORKSHOP_DIR}/${ID}" | awk '{print $1}')
+		C="${yellow}"
+		if [[ -L ${SERVER_PROFILE}/@${MODNAME} ]]
+		then
+			C="${green}"
+		fi
+		printf "${C}%.3d  %s %.30s     %s https://steamcommunity.com/sharedfiles/filedetails/?id=%s  %s${default}\n" ${X} ${ID} "${MODNAME}" "${spaces:${#MODNAME}}" ${ID} ${SIZE}
+		X=$((X+1))
+	done
+	echo
+}
+
+# Get mod name by ID or index
+get_mod_name(){
+	# Check for an ID
+	if ! [ -d "${WORKSHOP_DIR}/${1}" ]
+	then
+		echo "Mod ID ${1} doesn't exist" >&2
+		exit 1
+	fi
+	NAME=$(grep name "${WORKSHOP_DIR}/${1}/meta.cpp" | cut -d '"' -f2 | tr -cd "[:alnum:]")
+	if [[ ${NAME} = "" ]]
+	then
+		echo "Could not get metadata. See above. Exiting..."
+		exit 1
+	fi
+	echo -n ${NAME}
+}
+
+# Lint XML files
+lint(){
+	FILE=${1}
+	ID=${2}
+	var=${3}
+	xmllint --noout ${FILE} && (
+		# Keep the normalized version in the /mods directory
+		echo -e "${green}The ${var,,} file passes XML lint test! Copying to install location ${WORKSHOP_DIR}/${ID}/${var,,}.xml${default}"
+		cp -v ${FILE} ${WORKSHOP_DIR}/${ID}/${var,,}.xml
+	) || (
+		echo -e "${yellow}The ${var,,} file does not pass XML lint test! IT WAS NOT COPIED!${default}"
+	)
+}
+
+get_mod_id(){
+	# If we were passed a valid mod id, just return it
+	if [ -d "${WORKSHOP_DIR}/${1}" ]
+	then
+		echo -n ${1}
+		return
+	fi
+	# If we have a second argument, we want to iterate over active server mods
+	DIR=${SERVER_FILES}
+	ARG="-d"
+	if [[ ${2} = "0" ]]
+	then
+		ARG="-tdr"
+		DIR=${SERVER_PROFILE}
+	fi
+#	echo "DIR: ${DIR}, ARG: ${ARG}" >&2
+	X=1
+	# Loop over mods
+	for link in $(ls ${ARG} ${DIR}/@* 2> /dev/null)
+	do
+		ID=$(readlink ${link} | awk -F/ '{print $NF}')
+		if [[ "${X}" = "${1}" ]]
+		then
+			echo -n ${ID}
+			return
+		fi
+		X=$((X+1))
+	done
+}
+
+get_mods(){
+	workshoplist=""
+	for link in $(ls -d ${SERVER_FILES}/@* 2> /dev/null | sort)
+	do
+		ID=$(readlink ${link} | awk -F/ '{print $NF}')
+		MODNAME=$(get_mod_name ${ID})
+		workshoplist+=" +workshop_download_item ${release_client_appid} ${ID}"
+	done
+	get_mod_command_line
+}
+
+get_mod_command_line(){
+	mod_command_line=""
+	server_command_line=""
+	for link in $(ls -tdr ${SERVER_PROFILE}/@* 2> /dev/null)
+	do
+		ID=$(readlink ${link} | awk -F/ '{print $NF}')
+		MODNAME=$(get_mod_name ${ID})
+		if grep -q SERVER_MOD ${FILES}/mods/${ID}/xml.env 2> /dev/null
+		then
+			server_command_line+="@${MODNAME};"
+		else
+			mod_command_line+="@${MODNAME};"
+		fi
+	done
+	if [[ ${mod_command_line} != "" ]]
+	then
+		mod_command_line='-mod='${mod_command_line::-1}
+	fi
+	if [[ ${server_command_line} != "" ]]
+	then
+		server_command_line='-serverMod='${server_command_line::-1}
+	fi
+}
