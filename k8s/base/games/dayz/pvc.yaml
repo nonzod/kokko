@@ -10,9 +10,9 @@ spec:
   storageClassName: local-path
   resources:
     requests:
-      storage: 10Gi  # 2.7GB base + spazio aggiuntivo
+      storage: 8Gi  # 2.7GB base + margine per aggiornamenti
 ---
-# PVC per mods Steam Workshop
+# PVC per mods Steam Workshop (ridotto per test iniziali)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -24,7 +24,7 @@ spec:
   storageClassName: local-path
   resources:
     requests:
-      storage: 50Gi  # Spazio per mods (possono essere molto grandi)
+      storage: 20Gi  # Ridotto da 50Gi, espandibile in seguito
 ---
 # PVC per home directory (SteamCMD)
 apiVersion: v1
@@ -38,7 +38,7 @@ spec:
   storageClassName: local-path
   resources:
     requests:
-      storage: 5Gi
+      storage: 2Gi  # Ridotto da 5Gi
 ---
 # PVC per profiles server
 apiVersion: v1
@@ -52,9 +52,9 @@ spec:
   storageClassName: local-path
   resources:
     requests:
-      storage: 2Gi
+      storage: 1Gi  # Ridotto da 2Gi
 ---
-# PVC per server mpmissions
+# PVC per server mpmissions (mount principale)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -66,4 +66,4 @@ spec:
   storageClassName: local-path
   resources:
     requests:
-      storage: 5Gi
+      storage: 2Gi  # Ridotto da 5Gi

@@ -4,9 +4,8 @@ kind: Kustomization
 namespace: dayz
 
 resources:
-# Nuova configurazione DayZ basata su dayzdockerserver
 - pvc.yaml              # PVC multipli per volumi
 - configmaps.yaml       # ConfigMaps per configurazione
-- secret.yaml          # Secrets per credenziali Steam (da configurare)
-- deployment.yaml       # Deployment con container server + web
-- services.yaml         # Services aggiornati
+- secret.yaml          # Secrets per credenziali Steam  
+- deployment.yaml       # Deployment corretto con un solo container
+- services.yaml         # Services per porte DayZ
