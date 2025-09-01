@@ -1,4 +1,34 @@
-# PVC per server files base DayZ
+# PVC per homedir del web container (homedir_main)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dayz-homedir-web-pvc
+  namespace: dayz
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
+
+---
+# PVC per homedir del server container (homedir_server)  
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dayz-homedir-server-pvc
+  namespace: dayz
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
+
+---
+# PVC per server files (serverfiles)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -6,55 +36,14 @@ metadata:
   namespace: dayz
 spec:
   accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
+    - ReadWriteOnce  # Condiviso nel stesso pod
   resources:
     requests:
-      storage: 8Gi  # 2.7GB base + margine per aggiornamenti
----
-# PVC per mods Steam Workshop (ridotto per test iniziali)
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: dayz-mods-pvc
-  namespace: dayz
-spec:
-  accessModes:
-    - ReadWriteOnce
+      storage: 15Gi
   storageClassName: local-path
-  resources:
-    requests:
-      storage: 20Gi  # Ridotto da 50Gi, espandibile in seguito
+
 ---
-# PVC per home directory (SteamCMD)
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: dayz-homedir-pvc
-  namespace: dayz
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
-  resources:
-    requests:
-      storage: 2Gi  # Ridotto da 5Gi
----
-# PVC per profiles server
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: dayz-profiles-pvc
-  namespace: dayz
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
-  resources:
-    requests:
-      storage: 1Gi  # Ridotto da 2Gi
----
-# PVC per server mpmissions (mount principale)
+# PVC per server mp missions (servermpmissions)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -62,8 +51,38 @@ metadata:
   namespace: dayz
 spec:
   accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
+    - ReadWriteOnce  # Condiviso nel stesso pod (server read-only)
   resources:
     requests:
-      storage: 2Gi  # Ridotto da 5Gi
+      storage: 2Gi
+  storageClassName: local-path
+
+---
+# PVC per mods (mods)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dayz-mods-pvc
+  namespace: dayz
+spec:
+  accessModes:
+    - ReadWriteOnce  # Condiviso nel stesso pod
+  resources:
+    requests:
+      storage: 50Gi  # Mod possono essere molto grandi
+  storageClassName: local-path
+
+---
+# PVC per profiles (profiles)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dayz-profiles-pvc
+  namespace: dayz
+spec:
+  accessModes:
+    - ReadWriteOnce  # Solo server container
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path

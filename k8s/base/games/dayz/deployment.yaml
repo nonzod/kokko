@@ -15,251 +15,405 @@ spec:
       labels:
         app: dayz-server
     spec:
-      # Init container per setup completo - replicando il Dockerfile originale
+      # Init container per setup repository e file condivisi
       initContainers:
-      - name: setup-repo
-        image: debian:bullseye  # Stessa base del container principale
+      - name: setup-files
+        image: debian:bookworm-slim
+        # Run as root per setup iniziale
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
         command:
         - /bin/bash
         - -c
         - |
           set -e
+          echo "=== Setting up shared files from repository ==="
           
-          echo "=== Setting up DayZ environment (replicating Dockerfile) ==="
-          
-          # Setup debconf non-interactive (dal Dockerfile)
+          # Setup debconf non-interactive
           echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
           
-          # Install packages necessari (dal Dockerfile)
+          # Install git for cloning
+          apt-get update && apt-get -y install --no-install-recommends git curl
+          
+          # Clone repository if not exists
+          if [ ! -d "/shared-data/dayzdockerserver" ]; then
+            echo "Cloning dayzdockerserver repository..."
+            git config --global http.sslverify false
+            git clone https://ceregatti.org/git/daniel/dayzdockerserver.git /shared-data/dayzdockerserver
+          else
+            echo "Repository already exists, updating..."
+            cd /shared-data/dayzdockerserver && git config --global http.sslverify false && git pull || true
+          fi
+          
+          # Setup shared files directory structure
+          mkdir -p /shared-files /shared-web /shared-server
+          
+          # Copy files directory (shared by both containers: ./files:/files)
+          if [ -d "/shared-data/dayzdockerserver/files" ]; then
+            echo "Copying files directory..."
+            cp -rf /shared-data/dayzdockerserver/files/* /shared-files/
+            chmod +x /shared-files/bin/* 2>/dev/null || true
+          fi
+          
+          # Copy web directory (for web container: ./web:/web)
+          if [ -d "/shared-data/dayzdockerserver/web" ]; then
+            echo "Copying web directory..."
+            cp -rf /shared-data/dayzdockerserver/web/* /shared-web/
+            chmod +x /shared-web/bin/* 2>/dev/null || true
+          fi
+          
+          # Copy server directory (for server container: ./server:/server)
+          if [ -d "/shared-data/dayzdockerserver/server" ]; then
+            echo "Copying server directory..."
+            cp -rf /shared-data/dayzdockerserver/server/* /shared-server/
+            chmod +x /shared-server/bin/* 2>/dev/null || true
+          fi
+          
+          # Set ownership for user 1000 (come nei Dockerfile originali)
+          chown -R 1000:1000 /shared-files /shared-web /shared-server 2>/dev/null || true
+          
+          echo "Files setup completed"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /shared-data
+        - name: shared-files
+          mountPath: /shared-files
+        - name: shared-web
+          mountPath: /shared-web
+        - name: shared-server
+          mountPath: /shared-server
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "0.1"
+          limits:
+            memory: "256Mi"
+            cpu: "0.2"
+      
+      containers:
+      # Container WEB - replicando esattamente il Dockerfile web originale
+      - name: dayz-web
+        image: debian:bookworm-slim
+        workingDir: /root  # Start as root, poi switch a /home/user
+        # Setup iniziale come root, poi switch a user 1000
+        securityContext:
+          runAsUser: 0  # Root per setup iniziale
+          runAsGroup: 0
+        
+        # Setup identico al Dockerfile web/Dockerfile
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "=== DayZ Web Container Starting - Replicating web/Dockerfile ==="
+          
+          # Replace shell with bash
+          rm -f /bin/sh && ln -s /bin/bash /bin/sh
+          
+          # Set debconf to run non-interactively and agree to SteamCMD EULA
+          echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+          echo 'steam steam/question select "I AGREE"' | debconf-set-selections
+          echo 'steam steam/license note ""' | debconf-set-selections
+          dpkg --add-architecture i386
+          
+          # Add backports and contrib
+          sed -i /etc/apt/sources.list.d/debian.sources -e 's/Components: main/Components: main contrib non-free/g'
+          
+          # Install packages (identici al Dockerfile) - SENZA steamcmd che installiamo dopo
           apt-get update && apt-get -y upgrade && apt-get -y install --no-install-recommends \
+            binutils \
             curl \
-            ca-certificates \
             git \
             gwenhywfar-tools \
             jq \
-            libsdl2-2.0-0 \
-            libcap2 \
             libxml2-utils \
             locales \
             nano \
             procps \
             wget \
-            xmlstarlet \
-            steamcmd
+            rename \
+            lib32gcc-s1 \
+            xmlstarlet
           
-          # Set locale (dal Dockerfile)
+          # Installa SteamCMD manualmente (più affidabile di apt)
+          echo "Installing SteamCMD manually..."
+          mkdir -p /usr/games
+          cd /usr/games
+          wget https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz
+          tar -xvzf steamcmd_linux.tar.gz
+          chmod +x steamcmd.sh
+          # Crea symlink per compatibilità con script dz
+          ln -sf /usr/games/steamcmd.sh /usr/games/steamcmd
+          # Test SteamCMD
+          echo "Testing SteamCMD installation..."
+          ./steamcmd.sh +quit || echo "SteamCMD test completed"
+          
+          # Set locale
           sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
-          
-          # Install py3rcon (dal Dockerfile)
-          cd /usr/local && git clone https://github.com/indepth666/py3rcon.git
-          
-          # Scarica repository se non presente
-          if [ ! -d "/serverfiles/dayzdockerserver" ]; then
-            echo "Cloning dayzdockerserver repository..."
-            git clone https://ceregatti.org/git/daniel/dayzdockerserver.git /serverfiles/dayzdockerserver
-            echo "Repository cloned successfully"
-          else
-            echo "Repository already exists"
-          fi
-          
-          # Setup completo dei file
-          if [ -d "/serverfiles/dayzdockerserver" ]; then
-            echo "Setting up files from repository..."
-            
-            # Crea le directory necessarie (come nel Dockerfile)
-            mkdir -p /files /usr/local/bin /serverfiles/mpmissions /mods /mpmissions /profiles
-            
-            # Copia ./files:/files 
-            echo "Copying files directory..."
-            cp -rf /serverfiles/dayzdockerserver/files/* /files/ 2>/dev/null || true
-            chmod +x /files/bin/* 2>/dev/null || true
-            
-            # Copia ./server/bin/dz:/usr/local/bin/dz
-            echo "Copying dz script..."
-            cp -f /serverfiles/dayzdockerserver/server/bin/dz /usr/local/bin/dz 2>/dev/null || true
-            chmod +x /usr/local/bin/dz 2>/dev/null || true
-            
-            # Copia start.sh se esiste (COPY start.sh /usr/local/bin/start.sh nel Dockerfile)
-            if [ -f "/serverfiles/dayzdockerserver/server/start.sh" ]; then
-              echo "Copying start.sh script..."
-              cp -f /serverfiles/dayzdockerserver/server/start.sh /usr/local/bin/start.sh
-              chmod +x /usr/local/bin/start.sh
-            fi
-            
-            # Imposta ownership per utente 1000 (user:user nel Dockerfile)
-            chown -R 1000:1000 /serverfiles /mods /mpmissions /profiles /home/user 2>/dev/null || true
-            
-            echo "Files setup completed"
-          fi
-        volumeMounts:
-        - name: serverfiles
-          mountPath: /serverfiles
-        - name: mods
-          mountPath: /mods  
-        - name: homedir
-          mountPath: /home/user
-        - name: profiles
-          mountPath: /profiles
-        - name: servermpmissions
-          mountPath: /mpmissions
-        # Mount per i file di sistema che l'init deve popolare
-        - name: files-volume
-          mountPath: /files
-        - name: bin-volume  
-          mountPath: /usr/local/bin
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "0.2"
-          limits:
-            memory: "512Mi"
-            cpu: "0.5"
-      
-      containers:
-      # Container DayZ server - replicando esattamente il Dockerfile originale
-      - name: dayz-server
-        image: debian:bullseye  # Stessa base image del Dockerfile originale
-        workingDir: /home/user
-        # Avvia come utente user (come nel docker-compose originale)
-        securityContext:
-          runAsUser: 1000
-          runAsGroup: 1000
-        command:
-        - /bin/bash
-        - -c
-        - |
-          set -e
-          
-          echo "=== DayZ Server Container Starting - Replicating Dockerfile setup ==="
-          
-          # Setup environment (dal Dockerfile originale)
           export LANG=en_US.UTF-8
           export LANGUAGE=en_US:en
           export LC_ALL=en_US.UTF-8
-          export PATH=/files/bin:/server:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-          export HOME=/home/user
-          export USER=user
           
-          # Verifica che i file siano stati copiati dall'init container
-          echo "Verifying files setup:"
-          ls -la /files/bin/ 2>/dev/null || echo "No /files/bin directory"
-          ls -la /usr/local/bin/dz 2>/dev/null || echo "No dz script found"
+          # Install nodejs (identico al Dockerfile)
+          mkdir -p /usr/local/nvm
+          export NVM_DIR=/usr/local/nvm
+          export NODE_VERSION=20.12.2
+          wget -O - https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+          source $NVM_DIR/nvm.sh
+          nvm install $NODE_VERSION
+          nvm alias default $NODE_VERSION
+          nvm use default
+          export NODE_PATH=$NVM_DIR/versions/node/v$NODE_VERSION/lib/node_modules
+          export PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
           
-          # Crea .bashrc come nel setup originale
-          if [ ! -f "/home/user/.bashrc" ]; then
-            echo 'export PATH=/files/bin:/server:$PATH' >> /home/user/.bashrc
-            echo 'export LANG=en_US.UTF-8' >> /home/user/.bashrc
-            echo 'cd /home/user' >> /home/user/.bashrc
-          fi
+          # Setup user 1000 (identico al Dockerfile)
+          groupadd -g 1000 user && useradd -l -u 1000 -m -g user user || true
+          mkdir -p /home/user /serverfiles/mpmissions /serverfiles/steamapps/workshop/content /web
+          chown -R user:user /home/user /serverfiles /web
           
-          # Controlla se installazione è richiesta
-          if [ ! -f "/serverfiles/DayZServer" ]; then
-            echo "=============================================="
-            echo "DayZ server files not found!"
-            echo "Manual installation required due to Steam 2FA"
-            echo "=============================================="
-            echo ""
-            echo "To install the server manually:"
-            echo "1. kubectl exec -it deployment/dayz-server -n dayz -- bash"
-            echo "2. dz install"
-            echo "3. Follow Steam 2FA prompts"
-            echo ""
-            echo "Container will wait for manual installation..."
+          # Shut steamcmd up (dal Dockerfile)
+          cd /usr/lib/i386-linux-gnu && ln -s /web/bin/steamservice.so 2>/dev/null || true
+          
+          # Add bercon-cli (dal Dockerfile)
+          wget https://github.com/WoozyMasta/bercon-cli/releases/latest/download/bercon-cli-linux-amd64 -O bercon-cli
+          chmod +x bercon-cli
+          mv bercon-cli /usr/bin
+          
+          # PATH setup identico al Dockerfile: /usr/games:/files/bin:/web/bin:${PATH}
+          export PATH=/usr/games:/files/bin:/web/bin:$PATH
+          
+          # Setup .bashrc per user 1000 (come nel start.sh originale)
+          cat > /home/user/.bashrc <<EOF
+          alias ls='ls --color'
+          export PS1="\${debian_chroot:+(\$debian_chroot)}\u@dz-web:\w\$ "
+          export TERM=screen.xterm-256color
+          unset DEVELOPMENT
+          EOF
+          
+          # Verifica file setup
+          echo "Files available:"
+          ls -la /files/bin/ 2>/dev/null || echo "No /files/bin"
+          ls -la /web/ 2>/dev/null || echo "No /web directory"
+          
+          # Shut steamcmd up (directory setup)
+          mkdir -p /home/user/.steam
+          
+          # Switch to user 1000 for Steam operations
+          echo "Switching to user 1000 for Steam operations..."
+          
+          # Verifica che dz script sia disponibile
+          if command -v dz >/dev/null 2>&1; then
+            echo "dz script found, proceeding with installation..."
             
-            # Mantieni container vivo per installazione manuale
-            while [ ! -f "/serverfiles/DayZServer" ]; do
-              echo "Waiting for manual installation... ($(date))"
-              sleep 60
-            done
-            echo "DayZ server files detected! Proceeding with startup..."
+            # Auto-install DayZ server (as user 1000)
+            su user -c 'cd /home/user && echo "Checking if DayZ server is installed..."'
+            if [ ! -f "/serverfiles/DayZServer" ]; then
+              echo "DayZ server not found, installing with anonymous login..."
+              su user -c 'cd /home/user && dz install' || {
+                echo "Installation failed, server container will wait..."
+              }
+            else
+              echo "DayZ server already installed"
+            fi
           else
-            echo "DayZ server files already installed"
+            echo "dz script not found in PATH, skipping auto-installation"
+            echo "Manual installation required via: kubectl exec -it <pod> -c dayz-web -- dz install"
           fi
           
-          echo "=== Starting DayZ Server ==="
-          # Usa il comando start.sh come nel Dockerfile originale
-          if [ -f "/usr/local/bin/start.sh" ]; then
-            exec start.sh
-          else
-            # Fallback se start.sh non è disponibile
-            exec dz start
-          fi
-        
-        ports:
-        - containerPort: 2302
-          protocol: UDP
-          name: game-udp
-        - containerPort: 2303
-          protocol: UDP
-          name: game-udp2
-        - containerPort: 2304
-          protocol: UDP
-          name: game-udp3
-        - containerPort: 2305
-          protocol: UDP
-          name: game-udp4
-        - containerPort: 27016
-          protocol: UDP
-          name: query
+          # Avvia web server come nel start.sh originale (in background)
+          su user -c 'cd /web && if [ -f "package.json" ]; then npm i && export DEBUG="express:*" && npx nodemon web.js & fi' || true
+          su user -c 'cd /web/docroot 2>/dev/null && if [ -f "package.json" ]; then npm i && npm run dev & fi' || true
+          
+          # Keep container running as user 1000
+          echo "DayZ Web container ready - installation completed"
+          exec su user -c 'cd /home/user && while true; do sleep 30; done'
         
         env:
-        - name: STEAM_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: dayz-steam-secret
-              key: STEAM_USERNAME
-        - name: STEAM_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: dayz-steam-secret
-              key: STEAM_PASSWORD
-        - name: TZ
-          valueFrom:
-            configMapKeyRef:
-              name: dayz-env-config
-              key: TZ
-        - name: UID
+        # Environment variables dal docker-compose
+        - name: USER_ID
           value: "1000"
-        - name: GID  
-          value: "1000"
-        - name: USER
-          value: "user"
-        - name: PATH
-          value: "/files/bin:/server:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
         - name: LANG
           value: "en_US.UTF-8"
         - name: LANGUAGE
           value: "en_US:en"
         - name: LC_ALL
           value: "en_US.UTF-8"
+        - name: PATH
+          value: "/usr/games:/files/bin:/web/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
         
-        # Volume mounts - replicando ESATTAMENTE il docker-compose
+        ports:
+        - containerPort: 8001
+          protocol: TCP
+          name: web-api
+        - containerPort: 8000
+          protocol: TCP
+          name: web-ui
+        
+        # Volume mounts identici al docker-compose web service
         volumeMounts:
-        - name: homedir
+        - name: homedir-web
+          mountPath: /home/user           # homedir_main:/home/user
+        - name: serverfiles
+          mountPath: /serverfiles         # serverfiles:/serverfiles
+        - name: servermpmissions
+          mountPath: /serverfiles/mpmissions  # servermpmissions:/serverfiles/mpmissions
+        - name: mods
+          mountPath: /serverfiles/steamapps/workshop/content  # mods:/serverfiles/steamapps/workshop/content
+        - name: mods
+          mountPath: /mods                # mods:/mods
+        - name: shared-files
+          mountPath: /files               # ./files:/files
+        - name: shared-web
+          mountPath: /web                 # ./web:/web
+        
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "0.3"
+          limits:
+            memory: "1Gi"
+            cpu: "0.8"
+      
+      # Container SERVER - replicando esattamente il Dockerfile server originale  
+      - name: dayz-server
+        image: debian:bookworm-slim
+        workingDir: /root  # Start as root, poi switch a /home/user
+        # Setup iniziale come root, poi switch a user 1000
+        securityContext:
+          runAsUser: 0  # Root per setup iniziale
+          runAsGroup: 0
+        
+        # Setup identico al Dockerfile server/Dockerfile
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "=== DayZ Server Container Starting - Replicating server/Dockerfile ==="
+          
+          # Replace shell with bash
+          rm -f /bin/sh && ln -s /bin/bash /bin/sh
+          
+          # Set debconf non-interactively
+          echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+          
+          # Add backports and contrib
+          sed -i /etc/apt/sources.list.d/debian.sources -e 's/Components: main/Components: main contrib non-free/g'
+          
+          # Install packages (identici al server/Dockerfile)
+          apt-get update && apt-get -y upgrade && apt-get -y install --no-install-recommends \
+            binutils \
+            gwenhywfar-tools \
+            jq \
+            libxml2-utils \
+            locales \
+            ltrace \
+            nano \
+            patch \
+            procps \
+            strace \
+            wget \
+            xmlstarlet
+          
+          # Add bercon-cli (dal Dockerfile)
+          wget https://github.com/WoozyMasta/bercon-cli/releases/latest/download/bercon-cli-linux-amd64 -O bercon-cli
+          chmod +x bercon-cli
+          mv bercon-cli /usr/bin
+          
+          # Set locale
+          sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
+          export LANG=en_US.UTF-8
+          export LANGUAGE=en_US:en
+          export LC_ALL=en_US.UTF-8
+          
+          # PATH setup identico al Dockerfile: /files/bin:/server/bin:${PATH}
+          export PATH=/files/bin:/server/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+          
+          # Setup user 1000 (identico al Dockerfile)
+          groupadd -g 1000 user && useradd -l -u 1000 -m -g user user || true
+          mkdir -p /home/user /serverfiles/mpmissions /mods /mpmissions /profiles
+          chown -R user:user /home/user /serverfiles /mods /mpmissions /profiles
+          
+          # Setup .bashrc per user 1000 (come nel start.sh originale)
+          cat > /home/user/.bashrc <<EOF
+          alias ls='ls --color'
+          export PS1="\${debian_chroot:+(\$debian_chroot)}\u@dz-server:\w\$ "
+          export TERM=screen.xterm-256color
+          unset DEVELOPMENT
+          EOF
+          
+          # Verifica file setup
+          echo "Files available:"
+          ls -la /files/bin/ 2>/dev/null || echo "No /files/bin"
+          ls -la /server/bin/ 2>/dev/null || echo "No /server/bin"
+          
+          # Wait for web container to complete installation
+          echo "Waiting for DayZ server files to be installed by web container..."
+          while [ ! -f "/serverfiles/DayZServer" ]; do
+            echo "DayZ server files not found, waiting for web container installation..."
+            sleep 30
+          done
+          
+          echo "DayZ server files found! Checking missions..."
+          while [ ! -d "/mpmissions/dayzOffline.chernarusplus" ] && [ ! -d "/serverfiles/mpmissions/dayzOffline.chernarusplus" ]; do
+            echo "DayZ mission files not found, waiting for web container setup..."
+            sleep 30
+          done
+          
+          # Check if dz script exists (in either location)
+          if [ -f "/files/bin/dz" ] || [ -f "/server/bin/dz" ]; then
+            echo "Starting DayZ server using dz script as user 1000..."
+            # Switch to user 1000 ed esegue dz start (dz sarà trovato nel PATH)
+            exec su user -c 'cd /home/user && dz start'
+          else
+            echo "No dz script found in /files/bin/ or /server/bin/, keeping container alive as user 1000..."
+            exec su user -c 'cd /home/user && while true; do sleep 30; done'
+          fi
+        
+        env:
+        # Environment variables dal docker-compose
+        - name: USER_ID
+          value: "1000"
+        - name: LANG
+          value: "en_US.UTF-8"
+        - name: LANGUAGE
+          value: "en_US:en"
+        - name: LC_ALL
+          value: "en_US.UTF-8"
+        - name: PATH
+          value: "/files/bin:/server/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        
+        # Network host mode per LAN detection (dal docker-compose originale)
+        # In K8s questo si fa tramite hostNetwork nel pod spec
+        
+        # Volume mounts identici al docker-compose server service
+        volumeMounts:
+        - name: homedir-server
           mountPath: /home/user           # homedir_server:/home/user
         - name: serverfiles
           mountPath: /serverfiles         # serverfiles:/serverfiles
         - name: servermpmissions
-          mountPath: /mpmissions          # servermpmissions:/mpmissions:ro
-          readOnly: true
+          mountPath: /mpmissions          # servermpmissions:/mpmissions
+          readOnly: false  # Cambiato da true per permettere chown
         - name: mods
           mountPath: /mods                # mods:/mods
         - name: servermpmissions
           mountPath: /serverfiles/mpmissions  # mpmissions:/serverfiles/mpmissions
         - name: profiles
           mountPath: /profiles            # profiles:/profiles
-        # Mount dei file preparati dall'init container
-        - name: files-volume
+        - name: shared-files
           mountPath: /files               # ./files:/files
-        - name: bin-volume
-          mountPath: /usr/local/bin       # ./server/bin/dz:/usr/local/bin/dz
+        - name: shared-server
+          mountPath: /server              # ./server:/server
         
         resources:
           requests:
-            memory: "2Gi"
+            memory: "1.5Gi"
             cpu: "0.5"
           limits:
-            memory: "4Gi"
+            memory: "3Gi"
             cpu: "1.5"
         
         # Health checks
@@ -278,33 +432,63 @@ spec:
           periodSeconds: 60
           timeoutSeconds: 10
           failureThreshold: 3
+        
+        readinessProbe:
+          exec:
+            command:
+            - /bin/bash  
+            - -c
+            - |
+              if command -v dz >/dev/null 2>&1; then
+                dz status >/dev/null 2>&1 || exit 1
+              else
+                exit 0
+              fi
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
       
-      volumes:
-      # Volumi persistenti - replicando esattamente il docker-compose
-      - name: homedir
-        persistentVolumeClaim:
-          claimName: dayz-homedir-pvc      # homedir_server
-      - name: serverfiles
-        persistentVolumeClaim:
-          claimName: dayz-serverfiles-pvc  # serverfiles  
-      - name: servermpmissions
-        persistentVolumeClaim:
-          claimName: dayz-servermpmissions-pvc  # servermpmissions
-      - name: mods
-        persistentVolumeClaim:
-          claimName: dayz-mods-pvc         # mods
-      - name: profiles
-        persistentVolumeClaim:
-          claimName: dayz-profiles-pvc     # profiles
-      
-      # Volumi condivisi per files e bin (popolati dall'init container)
-      - name: files-volume
-        emptyDir: {}                       # ./files:/files
-      - name: bin-volume
-        emptyDir: {}                       # ./server/bin/dz:/usr/local/bin/dz
+      # Host network temporaneamente disabilitato per debugging
+      # hostNetwork: true
+      # dnsPolicy: ClusterFirstWithHostNet
       
       # Configurazione DNS per risoluzione nomi
       dnsConfig:
         options:
           - name: ndots
             value: "1"
+      
+      # Restart policy: Never (restart: no nel docker-compose server)
+      restartPolicy: Always  # Il restart è gestito internamente dallo script dz
+      
+      volumes:
+      # Volumi persistenti - replicando esattamente il docker-compose
+      - name: homedir-web
+        persistentVolumeClaim:
+          claimName: dayz-homedir-web-pvc     # homedir_main
+      - name: homedir-server
+        persistentVolumeClaim:
+          claimName: dayz-homedir-server-pvc  # homedir_server
+      - name: serverfiles
+        persistentVolumeClaim:
+          claimName: dayz-serverfiles-pvc     # serverfiles  
+      - name: servermpmissions
+        persistentVolumeClaim:
+          claimName: dayz-servermpmissions-pvc  # servermpmissions
+      - name: mods
+        persistentVolumeClaim:
+          claimName: dayz-mods-pvc            # mods
+      - name: profiles
+        persistentVolumeClaim:
+          claimName: dayz-profiles-pvc        # profiles
+      
+      # Volumi shared per repository e file (popolati dall'init container)
+      - name: shared-data
+        emptyDir: {}                          # Repository storage
+      - name: shared-files
+        emptyDir: {}                          # ./files:/files
+      - name: shared-web
+        emptyDir: {}                          # ./web:/web
+      - name: shared-server
+        emptyDir: {}                          # ./server:/server

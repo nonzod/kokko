@@ -1,4 +1,4 @@
-# ConfigMap per configurazione server DayZ
+# ConfigMap per la configurazione del server DayZ
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,20 +6,20 @@ metadata:
   namespace: dayz
 data:
   serverDZ.cfg: |
-    hostname = "Kubensis DayZ Server";
+    hostname = "K3s DayZ Server";
     password = "";
-    passwordAdmin = "kubensis2025";
+    passwordAdmin = "";
     maxPlayers = 60;
     verifySignatures = 2;
     forceSameBuild = 1;
     disableVoN = 0;
-    vonCodecQuality = 20;
+    vonCodecQuality = 7;
     disable3rdPerson = 0;
     disableCrosshair = 0;
     disablePersonalLight = 1;
     lightingConfig = 1;
     serverTime = "SystemTime";
-    serverTimeAcceleration = 1;
+    serverTimeAcceleration = 4;
     serverNightTimeAcceleration = 1;
     serverTimePersistent = 0;
     guaranteedUpdates = 1;
@@ -27,34 +27,36 @@ data:
     loginQueueMaxPlayers = 500;
     instanceId = 1;
     storeHouseStateDisabled = false;
-    enableDebugMonitor = 0;
-    allowFilePatching = 0;
-    simulatedPlayersBatch = 20;
-    multithreadedReplication = 1;
-    speedhackDetection = 1;
-    networkRangeClose = 20;
-    networkRangeNear = 150;
-    networkRangeFar = 1000;
-    networkRangeDistantEffect = 4000;
+    storageAutoFix = 1;
+    respawnTime = 5;
     
     class Missions
     {
         class DayZ
         {
-            template="dayzOffline.chernarusplus";
+            template = "dayzOffline.chernarusplus";
         };
     };
+
 ---
-# ConfigMap per environment variables
+# ConfigMap per variabili di ambiente
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: dayz-env-config
+  name: dayz-environment-config
   namespace: dayz
 data:
-  UID: "1000"
-  GID: "1000"
-  TZ: "Europe/Rome"
-  # Configurazioni specifiche per dayzdockerserver
-  DOCKER_USER: "dayz"
-  COMPOSE_PROJECT_NAME: "dayzdockerserver"
+  # Configurazione utente
+  USER_ID: "1000"
+  # Configurazione locale
+  LANG: "en_US.UTF-8"
+  LANGUAGE: "en_US:en"
+  LC_ALL: "en_US.UTF-8"
+  # Configurazione porte
+  GAME_PORT: "2302"
+  RCON_PORT: "2303"
+  STEAM_PORT: "27016"
+  WEB_PORT: "8000"
+  API_PORT: "8001"
+  # Repository
+  REPO_URL: "https://ceregatti.org/git/daniel/dayzdockerserver.git"

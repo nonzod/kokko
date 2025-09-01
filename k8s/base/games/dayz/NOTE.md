@@ -1,149 +1,243 @@
-# Istruzioni Migrazione DayZ Server
+# Guida Migrazione DayZ Multi-Container
 
-## 1. Backup dati esistenti (Raccomandato)
+## Panoramica
 
-```bash
-# Backup configurazione attuale
-kubectl get all -n dayz -o yaml > dayz-backup.yaml
+Questa configurazione replica **esattamente** il setup docker-compose originale con:
 
-# Backup volumi se necessario
-sudo rsync -av /mnt/storage/dayz-server-pvc-* /backup/dayz-old/
+- **Container Web** (`debian:bookworm-slim`): SteamCMD, gestione mod, web UI
+- **Container Server** (`debian:bookworm-slim`): solo server DayZ
+- **Volumi condivisi**: identici al docker-compose originale
+- **Network**: host mode per LAN detection (come nell'originale)
+
+## Struttura File
+
+Salva tutti gli artifact come file YAML nella directory `k8s/base/games/dayz/`:
+
+```
+k8s/base/games/dayz/
+├── namespace.yaml          # Namespace dayz
+├── pvc.yaml               # PVC per i volumi persistenti
+├── configmaps.yaml        # Configurazione server
+├── secrets.yaml           # Credenziali Steam
+├── deployment.yaml        # Multi-container deployment
+├── services.yaml          # Servizi per web UI
+└── kustomization.yaml     # Orchestrazione Kustomize
 ```
 
-## 2. Rimuovere configurazione esistente
+## 1. Backup Configurazione Attuale
+
+```bash
+# Backup completo
+kubectl get all -n dayz -o yaml > dayz-backup-$(date +%Y%m%d).yaml
+
+# Backup dati (opzionale se importanti)
+kubectl get pvc -n dayz
+```
+
+## 2. Rimuovere Setup Precedente
 
 ```bash
 # Elimina deployment attuale
-kubectl delete -k k8s/base/games/dayz/
+kubectl delete -k k8s/base/games/dayz/ 2>/dev/null || true
 
-# Rimuovi i file vecchi
-rm -rf k8s/base/games/dayz/
+# Elimina namespace (attenzione: cancella TUTTI i dati)
+kubectl delete namespace dayz 2>/dev/null || true
 ```
 
-## 3. Configurare credenziali Steam
+## 3. Configurare Credenziali Steam
 
-**IMPORTANTE**: Modifica `secrets.yaml` con le tue credenziali Steam reali:
+**IMPORTANTE**: Modifica `secrets.yaml` prima di applicare:
 
 ```yaml
 stringData:
-  STEAM_USERNAME: "tuo_username_steam"
-  STEAM_PASSWORD: "tua_password_steam"
-  STEAM_GUARD: ""  # Codice Steam Guard se richiesto
+  STEAM_USERNAME: "tuo_username_steam"  # OBBLIGATORIO per mod
+  STEAM_PASSWORD: "tua_password_steam"  
+  STEAM_GUARD: ""  # Se necessario
 ```
 
-⚠️ **Nota**: Per installare mod è necessario un account Steam che possiede DayZ.
+⚠️ **Nota**: Per installare mod è **necessario** un account Steam che possiede DayZ.
 
-## 4. Creare nuova struttura file
-
-```bash
-# Crea directory per nuova configurazione
-mkdir -p k8s/base/games/dayz/
-
-# Salva tutti gli artifact come file YAML nella directory
-# - pvc.yaml
-# - configmaps.yaml  
-# - secrets.yaml (con credenziali configurate)
-# - deployment.yaml
-# - services.yaml
-# - kustomization.yaml
-```
-
-## 5. Applicare nuova configurazione
+## 4. Applicare Nuova Configurazione
 
 ```bash
-# Applica la nuova configurazione
+# Applica tutto il setup
 kubectl apply -k k8s/base/games/dayz/
 
-# Verifica che i pod si avviino
+# Verifica deployment
 kubectl get pods -n dayz -w
 ```
 
-## 6. Gestione server
+## 5. Primo Avvio e Setup
 
-### Comandi di gestione tramite kubectl:
-
-```bash
-# Accesso al container web per gestione
-kubectl exec -it deployment/dayz-server -c dayz-web -n dayz -- bash
-
-# Accesso al container server
-kubectl exec -it deployment/dayz-server -c dayz-server -n dayz -- bash
-
-# Una volta dentro il container, usa gli script dz:
-./files/bin/dz status    # Stato server
-./files/bin/dz stop      # Ferma server
-./files/bin/dz start     # Avvia server
-./files/bin/dz install   # Installa/aggiorna server
-./files/bin/dz login     # Configura login Steam
-```
-
-### Gestione mod:
+### Verifica Container
 
 ```bash
-# Aggiungi mod (esempio Community Framework)
-kubectl exec -it deployment/dayz-server -c dayz-web -n dayz -- \
-  ./files/bin/dz add 1559212036
-
-# Lista mod installate
-kubectl exec -it deployment/dayz-server -c dayz-web -n dayz -- \
-  ./files/bin/dz list
-
-# Aggiorna tutti i mod
-kubectl exec -it deployment/dayz-server -c dayz-web -n dayz -- \
-  ./files/bin/dz modupdate
-```
-
-### RCON:
-
-```bash
-# Accesso RCON
-kubectl exec -it deployment/dayz-server -c dayz-server -n dayz -- \
-  ./files/bin/dz rcon
-```
-
-## 7. Monitoraggio
-
-```bash
-# Log del server
-kubectl logs deployment/dayz-server -c dayz-server -n dayz -f
-
-# Log del web container
-kubectl logs deployment/dayz-server -c dayz-web -n dayz -f
-
 # Stato generale
 kubectl get all -n dayz
+
+# Log dei container
+kubectl logs -f deployment/dayz-server -c dayz-web -n dayz     # Web container
+kubectl logs -f deployment/dayz-server -c dayz-server -n dayz  # Server container
 ```
 
-## 8. Configurazione avanzata
-
-### Modifica configurazione server:
-- Edita il ConfigMap `dayz-server-config`
-- Applica le modifiche: `kubectl apply -k k8s/base/games/dayz/`
-- Riavvia il deployment: `kubectl rollout restart deployment/dayz-server -n dayz`
-
-### Aggiungere spazio storage:
-- Edita i PVC per aumentare lo storage
-- Applica: `kubectl apply -k k8s/base/games/dayz/`
-
-## Note importanti:
-
-1. **Prima avvio**: Può richiedere molto tempo (download 2.7GB+ file server)
-2. **Volumi**: I volumi sono molto più grandi del setup precedente
-3. **Credenziali Steam**: Necessarie per mod, opzionali per server vanilla
-4. **Gestione**: Tutta la gestione avviene tramite script `dz` integrati
-5. **Web interface**: Potrebbere essere disponibile su porta 3000 (da verificare nel progetto originale)
-
-## Troubleshooting:
+### Login Steam (nel container web)
 
 ```bash
-# Se container non si avvia
+# Accesso al container web
+kubectl exec -it deployment/dayz-server -c dayz-web -n dayz -- bash
+
+# Login Steam (necessario per mod)
+dz login
+# Segui le istruzioni, inserisci credenziali, approva Steam Guard
+```
+
+### Installazione Server (nel container web)
+
+```bash
+# Dal container web, installa server files
+dz install
+# Download ~3GB di file
+```
+
+### Configurazione Server (nel container server)
+
+```bash
+# Accesso al container server  
+kubectl exec -it deployment/dayz-server -c dayz-server -n dayz -- bash
+
+# Applica configurazione
+dz config
+```
+
+## 6. Gestione Operativa
+
+### Comandi Web Container (gestione mod e aggiornamenti)
+
+```bash
+# Accesso container web
+kubectl exec -it deployment/dayz-server -c dayz-web -n dayz -- bash
+
+# Gestione mod
+dz add 1559212036        # Aggiungi mod (Community Framework)
+dz list                  # Lista mod installate
+dz modupdate            # Aggiorna tutti i mod
+dz remove 1559212036    # Rimuovi mod
+
+# Aggiornamenti
+dz update               # Aggiorna server files
+```
+
+### Comandi Server Container (gestione server)
+
+```bash
+# Accesso container server
+kubectl exec -it deployment/dayz-server -c dayz-server -n dayz -- bash
+
+# Gestione server
+dz status               # Stato server
+dz stop                 # Ferma server
+dz start                # Avvia server  
+dz restart              # Riavvia server
+dz force                # Kill forzato (emergenza)
+
+# Gestione mod (nel server)
+dz activate 1559212036  # Attiva mod installata
+dz deactivate 1559212036 # Disattiva mod
+dz list                 # Lista mod attive
+```
+
+### RCON
+
+```bash
+# Dal container server
+kubectl exec -it deployment/dayz-server -c dayz-server -n dayz -- dz rcon
+```
+
+## 7. Accesso Servizi
+
+### Web UI
+- **Web UI**: `http://<node-ip>:30800`
+- **Web API**: `http://<node-ip>:30801`
+
+### Server DayZ (hostNetwork)
+- **Game Port**: `<node-ip>:2302/UDP`
+- **RCON Port**: `<node-ip>:2303/UDP`  
+- **Steam Port**: `<node-ip>:27016/UDP`
+
+## 8. Monitoraggio
+
+```bash
+# Log in tempo reale
+kubectl logs -f deployment/dayz-server -c dayz-web -n dayz
+kubectl logs -f deployment/dayz-server -c dayz-server -n dayz
+
+# Stato risorse
+kubectl top pods -n dayz
+kubectl get pvc -n dayz
+
+# Eventi
+kubectl get events -n dayz --sort-by='.lastTimestamp'
+```
+
+## 9. Troubleshooting
+
+### Container non si avvia
+
+```bash
+# Descrizione pod
 kubectl describe pod -l app=dayz-server -n dayz
 
-# Se problemi con volumi
-kubectl get pv,pvc -n dayz
+# Log init container
+kubectl logs -f dayz-server-xxx -c setup-files -n dayz
+```
 
-# Reset completo (attenzione: cancella tutti i dati)
+### Problemi permessi volumi
+
+```bash
+# Fix permessi (se necessario)
+kubectl exec -it deployment/dayz-server -c dayz-web -n dayz -- \
+  bash -c "sudo chown -R 1000:1000 /serverfiles /mods /home/user"
+```
+
+### Server non si avvia
+
+```bash
+# Verifica file installazione
+kubectl exec -it deployment/dayz-server -c dayz-server -n dayz -- \
+  ls -la /serverfiles/DayZServer
+
+# Verifica configurazione
+kubectl exec -it deployment/dayz-server -c dayz-server -n dayz -- \
+  dz status
+```
+
+### Reset completo
+
+```bash
+# Attenzione: cancella TUTTI i dati
 kubectl delete namespace dayz
-kubectl create namespace dayz
 kubectl apply -k k8s/base/games/dayz/
 ```
+
+## Differenze Principali vs Docker-Compose
+
+✅ **Identico al docker-compose**:
+- Due container separati (web + server)
+- Stesse immagini base (`debian:bookworm-slim`)
+- Stessi volumi e mount point
+- Stesso PATH e environment
+- Host networking per LAN detection
+- Script `dz` funzionali in entrambi i container
+
+✅ **Miglioramenti K3s**:
+- Health checks automatici
+- Restart policy gestiti da K3s
+- Resource limits definiti
+- Storage persistente garantito
+- Monitoring integrato
+
+⚠️ **Note**:
+- Il primo avvio richiede setup manuale (login Steam + installazione)
+- Le credenziali Steam devono essere configurate nei secrets
+- Volumi più grandi per accommodare mod e server files
+- Network hostNetwork per mantenere compatibilità LAN

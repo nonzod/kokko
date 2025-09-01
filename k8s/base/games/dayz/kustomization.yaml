@@ -1,11 +1,35 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+metadata:
+  name: dayz-multicontainer
+  namespace: dayz
+
+# Namespace per tutti i componenti
 namespace: dayz
 
+# Risorse da includere nel deployment
 resources:
-- pvc.yaml              # PVC multipli per volumi
-- configmaps.yaml       # ConfigMaps per configurazione
-- secret.yaml          # Secrets per credenziali Steam  
-- deployment.yaml       # Deployment corretto con un solo container
-- services.yaml         # Services per porte DayZ
+  - pvc.yaml
+  - configmaps.yaml
+  - secret.yaml
+  - deployment.yaml
+  - services.yaml
+
+# Labels comuni per tutti i componenti
+commonLabels:
+  app.kubernetes.io/name: dayz-server
+  app.kubernetes.io/instance: dayz-multicontainer
+  app.kubernetes.io/component: game-server
+  app.kubernetes.io/part-of: dayz
+  app.kubernetes.io/managed-by: kustomize
+
+# Annotations comuni
+commonAnnotations:
+  deployment.kubernetes.io/description: "DayZ Server Multi-Container Deployment - Web + Server"
+  deployment.kubernetes.io/source: "https://ceregatti.org/git/daniel/dayzdockerserver.git"
+
+# Configurazione per i replica count
+replicas:
+  - name: dayz-server
+    count: 1

@@ -1,39 +1,4 @@
-# Service principale per DayZ server
-apiVersion: v1
-kind: Service
-metadata:
-  name: dayz-server-service
-  namespace: dayz
-  labels:
-    app: dayz-server
-spec:
-  type: LoadBalancer
-  selector:
-    app: dayz-server
-  ports:
-  # Porte DayZ server
-  - name: game-udp
-    port: 2302
-    targetPort: 2302
-    protocol: UDP
-  - name: game-udp2
-    port: 2303
-    targetPort: 2303
-    protocol: UDP
-  - name: game-udp3
-    port: 2304
-    targetPort: 2304
-    protocol: UDP
-  - name: game-udp4
-    port: 2305
-    targetPort: 2305
-    protocol: UDP
-  - name: query
-    port: 27016
-    targetPort: 27016
-    protocol: UDP
----
-# Service per gestione web (se utilizzato)
+# Service per il web container - gestione web UI e API
 apiVersion: v1
 kind: Service
 metadata:
@@ -41,12 +6,56 @@ metadata:
   namespace: dayz
   labels:
     app: dayz-server
+    component: web
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app: dayz-server
   ports:
-  - name: web-management
-    port: 3000
-    targetPort: 3000
+  - name: web-ui
+    port: 8000
+    targetPort: 8000
     protocol: TCP
+    nodePort: 30800  # Accesso esterno via :30800
+  - name: web-api  
+    port: 8001
+    targetPort: 8001
+    protocol: TCP
+    nodePort: 30801  # Accesso esterno via :30801
+
+---
+# Service per il server DayZ - informativo (usa hostNetwork)
+# Le porte sono già esposte direttamente sull'host grazie a hostNetwork: true
+apiVersion: v1
+kind: Service
+metadata:
+  name: dayz-server-service
+  namespace: dayz
+  labels:
+    app: dayz-server
+    component: server
+  annotations:
+    service.kubernetes.io/external-traffic: OnlyLocal
+    # Nota: questo servizio è puramente informativo
+    # Il server usa hostNetwork quindi le porte sono esposte direttamente:
+    # - 2302/UDP: Game port 
+    # - 2303/UDP: RCON port
+    # - 27016/UDP: Steam port
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless service
+  selector:
+    app: dayz-server
+  ports:
+  - name: game-port
+    port: 2302
+    targetPort: 2302
+    protocol: UDP
+  - name: rcon-port
+    port: 2303
+    targetPort: 2303
+    protocol: UDP
+  - name: steam-port
+    port: 27016
+    targetPort: 27016
+    protocol: UDP
