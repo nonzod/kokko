@@ -53,3 +53,7 @@ spec:
       - name: dnsmasq-etc
         persistentVolumeClaim:
           claimName: dnsmasq-etc-pvc
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
