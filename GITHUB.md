@@ -25,3 +25,5 @@ kubectl apply -f k8s/runner.yaml
 kubectl get runners -n http
 kubectl describe runner personal-website-runner-<ID> -n http
 ```
+
+Se si rigenera il token va quindi inserito come KOKKO_PATH e nel controller manager, poi riavviato il controller manager

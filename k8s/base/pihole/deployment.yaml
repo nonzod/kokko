@@ -17,11 +17,8 @@ spec:
         env:
         - name: TZ
           value: "Europe/Rome"
-        - name: WEBPASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: pihole-secret
-              key: webpassword
+        - name: DNSMASQ_LISTENING
+          value: "all"
         ports:
         - containerPort: 80
           name: http
