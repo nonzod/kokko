@@ -10,3 +10,7 @@ spec:
       repository: nonzod/personal-website
       labels:
         - self-hosted
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
