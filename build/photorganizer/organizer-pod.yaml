@@ -1,0 +1,123 @@
+# --- 1. PersistentVolume per la Libreria di Destinazione ---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nas-photos-pv
+  namespace: tools # Aggiunto Namespace
+spec:
+  capacity:
+    storage: 1000Gi
+  accessModes:
+    - ReadWriteMany
+  mountOptions:
+    - nfsvers=3
+    - nolock
+    - soft
+    - timeo=30
+    - retrans=3
+    - rsize=8192
+    - wsize=8192
+  nfs:
+    path: /Multimedia/Foto # MODIFICA QUESTO
+    server: 192.168.178.27       # MODIFICA QUESTO
+
+---
+# --- 2. PersistentVolume per la Cartella di Importazione ---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nas-import-pv
+  namespace: tools # Aggiunto Namespace
+spec:
+  capacity:
+    storage: 1000Gi
+  accessModes:
+    - ReadWriteMany
+  mountOptions:
+    - nfsvers=3
+    - nolock
+    - soft
+    - timeo=30
+    - retrans=3
+    - rsize=8192
+    - wsize=8192
+  nfs:
+    path: /Multimedia/Camera Uploads # MODIFICA QUESTO
+    server: 192.168.178.27        # MODIFICA QUESTO
+
+---
+# --- 3. PersistentVolumeClaim per la Libreria ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nas-photos-pvc
+  namespace: tools # Aggiunto Namespace
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 500Gi
+  volumeName: nas-photos-pv
+
+---
+# --- 4. PersistentVolumeClaim per l'Import ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nas-import-pvc
+  namespace: tools # Aggiunto Namespace
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 100Gi
+  volumeName: nas-import-pv
+
+---
+# --- 5. Il Pod che esegue il container ---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: photo-organizer-pod
+  namespace: tools # Aggiunto Namespace
+  labels:
+    app: photo-organizer
+spec:
+  containers:
+    - name: organizer-container
+      image: nonzod/photo-organizer:latest # Aggiornato nome immagine
+      imagePullPolicy: Always
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "250m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
+      # --- AGGIUNTO: Variabili d'Ambiente per configurare lo script ---
+      env:
+        - name: TEST
+          value: "false"  # Imposta a "false" per eseguire lo script automaticamente
+        - name: PHOTO_DESTINATION_PATH
+          value: "/mnt/photos_destination"
+        - name: VIDEO_SUBDIR_NAME
+          value: "Videos"
+        - name: NUM_TEST_FILES
+          value: "100"
+      # ------------------------------------------------------------------
+      volumeMounts:
+        - name: photos-storage
+          mountPath: /mnt/photos_destination
+        - name: import-storage
+          mountPath: /mnt/photos_source
+  volumes:
+    - name: photos-storage
+      persistentVolumeClaim:
+        claimName: nas-photos-pvc
+    - name: import-storage
+      persistentVolumeClaim:
+        claimName: nas-import-pvc
