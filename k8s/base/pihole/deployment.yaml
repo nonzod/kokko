@@ -19,6 +19,8 @@ spec:
           value: "Europe/Rome"
         - name: DNSMASQ_LISTENING
           value: "all"
+        - name: FTLCONF_dns_listeningMode
+          value: "all"
         ports:
         - containerPort: 80
           name: http
