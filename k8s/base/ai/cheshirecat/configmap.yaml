@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cheshire-cat-config
+data:
+  # Configurazione Host/Porta interna
+  CORE_HOST: "0.0.0.0"
+  CORE_PORT: "80"
+  
+  # Connessione a Qdrant [4, 5]
+  # Usiamo il nome del servizio Kubernetes definito sopra
+  CCAT_QDRANT_HOST: "qdrant.db.svc.cluster.local" 
+  CCAT_QDRANT_PORT: "6333"
+  
+  # Logging
+  CCAT_LOG_LEVEL: "INFO" # Opzioni: DEBUG, INFO, WARNING, ERROR
+  
+  # Configurazioni Critiche per Ingress/Reverse Proxy [10]
+  # Obbligatorio true se dietro Traefik/Ingress per gestire correttamente 
+  # i redirect HTTPS e la generazione degli URL WebSocket (wss://)
+  CCAT_HTTPS_PROXY_MODE: "true" 
+  
+  # Disabilita il Watchdog dei file in produzione per risparmiare CPU
+  WATCHFILES_FORCE_POLLING: "false"

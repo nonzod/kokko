@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: qdrant
+  namespace: ai  # Definito nel kustomization padre, ma utile per chiarezza
+  labels:
+    app: qdrant
+    component: vector-db
+spec:
+  serviceName: "qdrant"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qdrant
+  template:
+    metadata:
+      labels:
+        app: qdrant
+    spec:
+      containers:
+      - name: qdrant
+        image: qdrant/qdrant:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 6333
+          name: http-api
+        - containerPort: 6334
+          name: grpc-api
+        env:
+        # Ottimizzazione per K8s: Disabilita telemetry se necessario e configura strict mode
+        - name: QDRANT__TELEMETRY_DISABLED
+          value: "true"
+        volumeMounts:
+        - name: qdrant-storage
+          mountPath: /qdrant/storage
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 6333
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 6333
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"  # Qdrant è efficiente, ma HNSW usa RAM. Monitorare OOM.
+            cpu: "1000m"
+  volumeClaimTemplates:
+  - metadata:
+      name: qdrant-storage
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      storageClassName: local-path # Default in K3s, esplicito per chiarezza
+      resources:
+        requests:
+          storage: 10Gi

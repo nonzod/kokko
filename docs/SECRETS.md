@@ -51,3 +51,18 @@ type: Opaque
 stringData:
   password: <SAMBA_PASSWORD>
 ```
+
+## cheshire cat
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cheshire-cat-secrets
+  namespace: ai
+type: Opaque
+stringData:
+  OPENAI_API_KEY: "sk-placeholder-key-da-sostituire"
+  CCAT_API_KEY: "admin-key-per-proteggere-il-cat"
+  QDRANT_API_KEY: "chiave-se-qdrant-è-protetto"
+```

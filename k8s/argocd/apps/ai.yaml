@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: db
+  name: ai
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: git@github.com:nonzod/kokko.git
-    path: k8s/base/db
+    path: k8s/base/ai
     targetRevision: HEAD
   destination:
     server: https://kubernetes.default.svc
-    namespace: db
+    namespace: ai
   syncPolicy:
     automated:
       prune: true

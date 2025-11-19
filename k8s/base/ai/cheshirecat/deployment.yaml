@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cheshire-cat-core
+  labels:
+    app: cheshire-cat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cheshire-cat
+  strategy:
+    # Recreate è essenziale con volumi RWO (ReadWriteOnce).
+    # Termina il vecchio pod prima di avviarne uno nuovo per liberare il lock sul volume.
+    type: Recreate 
+  template:
+    metadata:
+      labels:
+        app: cheshire-cat
+    spec:
+      # Security Context per assicurare che l'utente del container (spesso 1000)
+      # abbia i permessi di scrittura sui volumi montati.
+      securityContext:
+        fsGroup: 1000 
+      containers:
+      - name: cheshire-cat-core
+        image: ghcr.io/cheshire-cat-ai/core:latest
+        imagePullPolicy: Always # Consigliato per :latest, meglio usare tag specifici in prod
+        ports:
+        - containerPort: 80
+          name: http
+        envFrom:
+        - configMapRef:
+            name: cheshire-cat-config
+        - secretRef:
+            name: cheshire-cat-secrets # Generato dinamicamente da Kustomize
+        volumeMounts:
+        - name: data
+          mountPath: /app/cat/data
+        - name: plugins
+          mountPath: /app/cat/plugins
+        - name: static
+          mountPath: /app/cat/static
+        resources:
+          requests:
+            memory: "1Gi" # L'AI è memory intensive (caricamento librerie Python, embedding)
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 60
+          periodSeconds: 20
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: cheshire-cat-data
+      - name: plugins
+        persistentVolumeClaim:
+          claimName: cheshire-cat-plugins
+      - name: static
+        persistentVolumeClaim:
+          claimName: cheshire-cat-static
