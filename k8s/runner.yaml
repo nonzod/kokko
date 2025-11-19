@@ -8,7 +8,7 @@ spec:
   template:
     spec:
       repository: nonzod/personal-website
-      image: ubuntu:22.04
+      image: summerwind/actions-runner:ubuntu-22.04
       labels:
         - self-hosted
       dnsConfig:
