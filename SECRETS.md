@@ -33,7 +33,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: mysql-secret
-  namespace: mysql
+  namespace: db
 type: kubernetes.io/basic-auth
 stringData:
   password: '<MYSQL_ROOT_PASSWORD>'

@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: n8n
-  namespace: n8n
+  namespace: ai
 spec:
   selector:    
     service: n8n

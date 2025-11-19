@@ -4,7 +4,7 @@ metadata:
   labels:
     app: ollama
   name: ollama
-  namespace: ollama
+  namespace: ai
 spec:
   replicas: 1
   selector:
