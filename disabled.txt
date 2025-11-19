@@ -1,0 +1,5 @@
+n8n
+ollama
+backrest
+postgres
+dayz
