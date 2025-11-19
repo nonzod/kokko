@@ -1,0 +1,14 @@
+project: default
+source:
+  repoURL: https://charts.jetstack.io
+  targetRevision: v1.17.1
+  helm:
+    parameters:
+      - name: installCRDs
+        value: 'true'
+  chart: cert-manager
+destination:
+  server: https://kubernetes.default.svc
+  namespace: cert-manager
+syncPolicy:
+  automated: {}

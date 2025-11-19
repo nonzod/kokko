@@ -1,0 +1,10 @@
+project: default
+source:
+  repoURL: git@github.com:nonzod/kokko.git
+  path: k8s/base/pihole
+  targetRevision: master
+destination:
+  server: https://kubernetes.default.svc
+  namespace: pihole
+syncPolicy:
+  automated: {}
