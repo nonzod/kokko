@@ -6,4 +6,3 @@ namespace: db
 resources:
 - namespace.yaml
 - mysql
-- postgres
