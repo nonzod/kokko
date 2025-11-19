@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mysql
-  namespace: mysql
+  namespace: db
 spec:
   ports:
   - port: 3306
@@ -14,7 +14,7 @@ apiVersion: v1
 kind: Service
 metadata:  
   name: mysql-ext
-  namespace: mysql
+  namespace: db
 spec:
   selector:    
     app: mysql

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mysql
-  namespace: mysql
+  namespace: db
 spec:
   serviceName: "mysql"
   replicas: 1

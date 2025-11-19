@@ -4,7 +4,7 @@ metadata:
   labels:
     app: postgres
   name: postgres
-  namespace: postgres
+  namespace: db
 spec:
   serviceName: "postgres"
   replicas: 1
