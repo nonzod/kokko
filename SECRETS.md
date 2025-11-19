@@ -38,3 +38,16 @@ type: kubernetes.io/basic-auth
 stringData:
   password: '<MYSQL_ROOT_PASSWORD>'
 ```
+
+## Samba
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: samba-credentials
+  namespace: domotica
+type: Opaque
+stringData:
+  password: <SAMBA_PASSWORD>
+```
