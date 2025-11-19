@@ -3,6 +3,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: wireguard-data-pvc
+  namespace: wireguard
 spec:
   accessModes:
     - ReadWriteOnce

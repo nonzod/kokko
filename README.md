@@ -36,23 +36,42 @@ The infrastructure is built on K3s with the following components:
 ## Directory Structure
 
 ```
-k8s/
-├── argocd/               # ArgoCD configuration
-├── base/                 # Base configurations
-│   ├── backrest/         # Backup management
-│   ├── domotica/         # Home automation
-│   │   ├── esphome/      # ESP device management
-│   │   └── homeassistant/# Home Assistant
-│   ├── http/             # Web services
-│   │   ├── nicolatomassoni/ # Personal website
-│   │   └── scmapping/    # SC Mapping application
-│   ├── pihole/           # Network ad blocking
-│   └── wireguard/        # VPN server
-├── certmanager/          # Certificate management
-├── coredns/              # DNS configuration
-└── overlays/             # Environment-specific overlays
-    ├── development/      # Development environment
-    └── production/       # Production environment
+kokko/
+├── build/                # Build artifacts and binaries
+│   ├── gstreamer/        # GStreamer build files
+│   ├── micrortsp/        # Micro RTSP server
+│   └── photorganizer/    # Photo organizer application
+├── docs/                 # Documentation
+├── k8s/                  # Kubernetes configurations
+│   ├── argocd/           # ArgoCD configuration
+│   │   └── apps/         # ArgoCD application definitions
+│   ├── base/             # Base configurations
+│   │   ├── ai/           # AI services
+│   │   │   ├── n8n/      # Workflow automation
+│   │   │   └── ollama/   # Local LLM runtime
+│   │   ├── backrest/     # Backup management
+│   │   ├── db/           # Database services
+│   │   │   ├── mysql/    # MySQL database
+│   │   │   └── postgres/ # PostgreSQL database
+│   │   ├── domotica/     # Home automation
+│   │   │   ├── esphome/  # ESP device management
+│   │   │   ├── homeassistant/ # Home Assistant
+│   │   │   ├── motion/   # Motion detection
+│   │   │   ├── rtsp-server/ # RTSP streaming server
+│   │   │   └── samba/    # Network file sharing
+│   │   ├── games/        # Game servers
+│   │   │   └── dayz/     # DayZ game server
+│   │   ├── http/         # Web services
+│   │   │   ├── nicolatomassoni/ # Personal website
+│   │   │   └── scmapping/    # SC Mapping application
+│   │   ├── pihole/       # Network ad blocking
+│   │   └── wireguard/    # VPN server
+│   ├── certmanager/      # Certificate management
+│   ├── coredns/          # DNS configuration
+│   └── overlays/         # Environment-specific overlays
+│       ├── development/  # Development environment
+│       └── production/   # Production environment
+└── localfiles/           # Local configuration files
 ```
 
 ## Prerequisites

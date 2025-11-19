@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: restic
 
 resources:
+- namespace.yaml
 - pvc.yaml
 - deployment.yaml
 - configmap.yaml
