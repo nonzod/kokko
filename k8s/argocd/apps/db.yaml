@@ -1,0 +1,12 @@
+project: default
+source:
+  repoURL: git@github.com:nonzod/kokko.git
+  path: k8s/base/db
+  targetRevision: master
+destination:
+  server: https://kubernetes.default.svc
+  namespace: db
+syncPolicy:
+  automated:
+    prune: true
+    selfHeal: true
