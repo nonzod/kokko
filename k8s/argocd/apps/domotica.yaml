@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/nonzod/kokko.git
+    repoURL: git@github.com:nonzod/kokko.git
     path: k8s/base/domotica
     targetRevision: HEAD
   destination:
