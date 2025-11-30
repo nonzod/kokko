@@ -18,6 +18,7 @@ spec:
       containers:
         - name: wireguard
           image: ghcr.io/wg-easy/wg-easy
+          imagePullPolicy: Always
           envFrom:
             - configMapRef:
                 name: wireguard-config

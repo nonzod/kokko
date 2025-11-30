@@ -15,6 +15,7 @@ spec:
       containers:
       - name: pihole
         image: pihole/pihole:latest
+        imagePullPolicy: Always
         env:
         - name: TZ
           value: "Europe/Rome"

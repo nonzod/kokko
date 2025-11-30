@@ -20,7 +20,7 @@ spec:
       containers:
       - name: qdrant
         image: qdrant/qdrant:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - containerPort: 6333
           name: http-api

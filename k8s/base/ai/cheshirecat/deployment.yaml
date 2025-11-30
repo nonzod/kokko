@@ -18,14 +18,12 @@ spec:
       labels:
         app: cheshire-cat
     spec:
-      # Security Context per assicurare che l'utente del container (spesso 1000)
-      # abbia i permessi di scrittura sui volumi montati.
       securityContext:
         fsGroup: 1000 
       containers:
       - name: cheshire-cat-core
         image: ghcr.io/cheshire-cat-ai/core:latest
-        imagePullPolicy: Always # Consigliato per :latest, meglio usare tag specifici in prod
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
           name: http

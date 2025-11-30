@@ -18,6 +18,7 @@ spec:
       containers:
       - name: samba
         image: elswork/samba:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 139
           name: netbios

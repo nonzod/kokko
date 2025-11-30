@@ -16,6 +16,7 @@ spec:
       containers:
       - name: avahi
         image: ydkn/avahi:latest
+        imagePullPolicy: Always
         securityContext:
           privileged: true
         resources:
