@@ -19,9 +19,9 @@ spec:
         - -c
         - |
           cd /data
-          if [ ! -f "it-IT-leonardo-medium.onnx" ]; then
-            wget -O it-IT-leonardo-medium.onnx https://huggingface.co/kirys79/piper_italiano/resolve/main/Leonardo/it-IT-leonardo-medium.onnx
-            wget -O it-IT-leonardo-medium.onnx.json https://huggingface.co/kirys79/piper_italiano/resolve/main/Leonardo/it-IT-leonardo-medium.onnx.json
+          if [ ! -f "leonardo-epoch=2024-step=996300.onnx" ]; then
+            wget -O leonardo-epoch=2024-step=996300.onnx https://huggingface.co/kirys79/piper_italiano/resolve/main/Leonardo/leonardo-epoch=2024-step=996300.onnx
+            wget -O leonardo-epoch=2024-step=996300.onnx.json https://huggingface.co/kirys79/piper_italiano/resolve/main/Leonardo/leonardo-epoch=2024-step=996300.json
           fi
         volumeMounts:
         - name: piper-data
@@ -32,7 +32,7 @@ spec:
         imagePullPolicy: Always
         args:
           - "--voice"
-          - "/data/it-IT-leonardo-medium.onnx"
+          - "/data/leonardo-epoch=2024-step=996300.onnx"
         ports:
         - containerPort: 10200
           name: wyoming
