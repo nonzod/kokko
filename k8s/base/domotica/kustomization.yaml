@@ -9,3 +9,4 @@ resources:
 - esphome
 - samba
 - mpd-server
+- rtsp-server
