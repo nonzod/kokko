@@ -11,13 +11,28 @@ spec:
       labels:
         app: wyoming-piper
     spec:
+      initContainers:
+      - name: download-voice
+        image: busybox:latest
+        command:
+        - sh
+        - -c
+        - |
+          cd /data
+          if [ ! -f "it-IT-leonardo-medium.onnx" ]; then
+            wget -O it-IT-leonardo-medium.onnx https://huggingface.co/kirys79/piper_italiano/resolve/main/Leonardo/it-IT-leonardo-medium.onnx
+            wget -O it-IT-leonardo-medium.onnx.json https://huggingface.co/kirys79/piper_italiano/resolve/main/Leonardo/it-IT-leonardo-medium.onnx.json
+          fi
+        volumeMounts:
+        - name: piper-data
+          mountPath: /data
       containers:
       - name: wyoming-piper
         image: rhasspy/wyoming-piper:latest
         imagePullPolicy: Always
         args:
           - "--voice"
-          - "it_IT-riccardo-x_low"
+          - "/data/it-IT-leonardo-medium.onnx"
         ports:
         - containerPort: 10200
           name: wyoming
