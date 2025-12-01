@@ -4,8 +4,7 @@ kind: Kustomization
 namespace: domotica
 
 resources:
-- namespace.yaml
-- homeassistant
-- esphome
-- samba
-- mpd-server
+- pvc.yaml
+- configmap.yaml
+- deployment.yaml
+- service.yaml

@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mpd-config
+data:
+  mpd.conf: |
+    music_directory    "/var/lib/mpd/music"
+    playlist_directory "/var/lib/mpd/playlists"
+    db_file            "/var/lib/mpd/database"
+    log_file           "/var/lib/mpd/mpd.log"
+    pid_file           "/var/lib/mpd/pid"
+    state_file         "/var/lib/mpd/state"
+    sticker_file       "/var/lib/mpd/sticker.sql"
+
+    bind_to_address    "0.0.0.0"
+
+    input {
+        plugin "curl"
+    }
+
+    audio_output {
+        type            "pulse"
+        name            "PulseAudio Output"
+        server          "unix:/run/pulse/native"
+    }
