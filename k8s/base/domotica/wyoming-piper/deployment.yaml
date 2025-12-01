@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wyoming-piper
+spec:
+  selector:
+    matchLabels:
+      app: wyoming-piper
+  template:
+    metadata:
+      labels:
+        app: wyoming-piper
+    spec:
+      containers:
+      - name: wyoming-piper
+        image: rhasspy/wyoming-piper:latest
+        imagePullPolicy: Always
+        args:
+          - "--voice"
+          - "it_IT-riccardo-x_low"
+        ports:
+        - containerPort: 10200
+          name: wyoming
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: "1"
+          requests:
+            memory: 512Mi
+            cpu: "0.2"
+        volumeMounts:
+        - name: piper-data
+          mountPath: /data
+      volumes:
+      - name: piper-data
+        persistentVolumeClaim:
+          claimName: piper-data-pvc
