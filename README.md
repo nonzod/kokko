@@ -1,323 +1,198 @@
-# Kubernetes Home Infrastructure
+# K3s Home Infrastructure
 
-This repository contains the Kubernetes configuration for a home infrastructure setup using K3s, Kustomize, and ArgoCD for GitOps. The setup includes various services like Home Assistant, ESPHome, Pi-hole, WireGuard VPN, and web services.
+Infrastructure repository for K3s-based home services deployment using GitOps with ArgoCD. Configuration management is handled through Kustomize with base configurations and environment-specific overlays.
 
-## Architecture Overview
+## Architecture
 
-The infrastructure is built on K3s with the following components:
+### Core Components
 
-- **GitOps**: ArgoCD for continuous deployment from Git
-- **Service Discovery**: CoreDNS with custom host entries
+- **GitOps**: ArgoCD for automated deployment from Git repository
+- **Configuration Management**: Kustomize for declarative configuration
+- **Ingress**: NGINX Ingress Controller for HTTP/HTTPS routing
 - **Certificate Management**: cert-manager with Let's Encrypt
-- **Ingress**: NGINX Ingress Controller
-- **Storage**: Local-path-provisioner for persistent storage
-- **Namespaces**:
-  - `domotica`: Home automation services
-  - `http`: Web services
-  - `pihole`: Network-wide ad blocking
-  - `wireguard`: VPN services
-  - `restic`: Backups
-  - `argocd`: GitOps deployment
-  - `cert-manager`: Certificate management
+- **Storage**: local-path-provisioner for persistent volumes at `/mnt/storage`
+- **DNS**: CoreDNS with custom host entries
 
-## Services
-
-| Service | Description | Access |
-|---------|-------------|--------|
-| **Home Assistant** | Home automation platform | `https://my.domain.tld/` |
-| **ESPHome** | ESP32/ESP8266 management | `https://my.domain.tld/esphome/` |
-| **Pi-hole** | Network-wide ad blocking | `https://my.domain.tld/pihole/` |
-| **WireGuard** | VPN server with Web UI | `https://<server-ip>:51821/` |
-| **Personal Website** | Static website | `https://my.domain.tld/` |
-| **SC Mapping** | Custom NodeJS application | `https://second.domain.tld/` |
-| **ArgoCD** | GitOps UI | `https://argocd.my.domain.tld/` |
-| **Backrest** | Restic backup UI | `http://<server-ip>:9898/` |
-
-## Directory Structure
+### Repository Structure
 
 ```
-kokko/
-├── build/                # Build artifacts and binaries
-│   ├── gstreamer/        # GStreamer build files
-│   ├── micrortsp/        # Micro RTSP server
-│   └── photorganizer/    # Photo organizer application
-├── docs/                 # Documentation
-├── k8s/                  # Kubernetes configurations
-│   ├── argocd/           # ArgoCD configuration
-│   │   └── apps/         # ArgoCD application definitions
-│   ├── base/             # Base configurations
-│   │   ├── ai/           # AI services
-│   │   │   ├── n8n/      # Workflow automation
-│   │   │   └── ollama/   # Local LLM runtime
-│   │   ├── backrest/     # Backup management
-│   │   ├── db/           # Database services
-│   │   │   ├── mysql/    # MySQL database
-│   │   │   └── postgres/ # PostgreSQL database
-│   │   ├── domotica/     # Home automation
-│   │   │   ├── esphome/  # ESP device management
-│   │   │   ├── homeassistant/ # Home Assistant
-│   │   │   ├── motion/   # Motion detection
-│   │   │   ├── rtsp-server/ # RTSP streaming server
-│   │   │   └── samba/    # Network file sharing
-│   │   ├── games/        # Game servers
-│   │   │   └── dayz/     # DayZ game server
-│   │   ├── http/         # Web services
-│   │   │   ├── nicolatomassoni/ # Personal website
-│   │   │   └── scmapping/    # SC Mapping application
-│   │   ├── pihole/       # Network ad blocking
-│   │   └── wireguard/    # VPN server
-│   ├── certmanager/      # Certificate management
-│   ├── coredns/          # DNS configuration
-│   └── overlays/         # Environment-specific overlays
-│       ├── development/  # Development environment
-│       └── production/   # Production environment
-└── localfiles/           # Local configuration files
+k8s/
+├── argocd/
+│   └── apps/              # ArgoCD Application definitions
+├── base/                  # Base Kubernetes manifests
+│   ├── ai/                # AI services (cheshirecat)
+│   ├── db/                # Databases (mysql, qdrant)
+│   ├── domotica/          # Home automation services
+│   ├── http/              # Web services
+│   ├── pihole/            # Network ad blocking
+│   └── wireguard/         # VPN services
+├── certmanager/           # Certificate manager configuration
+├── coredns/               # DNS configuration
+└── overlays/              # Environment-specific configurations
+    ├── development/
+    └── production/
 ```
 
-## Prerequisites
+## Active Services
 
-- Linux server with at least 4GB RAM and 2 CPU cores
+The following services are currently deployed through Kustomize:
+
+### Domotica Namespace
+- **Home Assistant**: Home automation platform
+- **ESPHome**: ESP32/ESP8266 device management
+- **Samba**: Network file sharing
+- **MPD Server**: Music Player Daemon for audio streaming
+- **RTSP Server**: Real-Time Streaming Protocol server
+- **Wyoming Piper**: Text-to-speech service for Home Assistant
+
+### HTTP Namespace
+- **nicolatomassoni**: Personal website
+
+### AI Namespace
+- **Cheshire Cat**: AI conversational agent with RAG capabilities
+
+### DB Namespace
+- **MySQL**: Relational database
+- **Qdrant**: Vector database for AI embeddings
+
+### Other Services
+- **Pi-hole**: Network-wide ad blocking (pihole namespace)
+- **WireGuard**: VPN server (wireguard namespace)
+
+## Documentation
+
+Detailed documentation is available in the `docs/` directory:
+
+- [STORAGE.md](docs/STORAGE.md) - Persistent storage management, backup and restore procedures
+- [SECRETS.md](docs/SECRETS.md) - Secret templates for services requiring credentials
+- [ARGOCD.md](docs/ARGOCD.md) - ArgoCD setup and GitOps workflow
+- [SERVICES.md](docs/SERVICES.md) - Service-specific configuration and access information
+- [GITHUB.md](docs/GITHUB.md) - GitHub Actions runner configuration
+
+## Quick Start
+
+### Prerequisites
+
+- Linux server with minimum 4GB RAM and 2 CPU cores
 - K3s installed
-- Domain name(s) with proper DNS configuration
-- Port forwarding for:
-  - 80/443 (HTTP/HTTPS)
-  - 51820/UDP (WireGuard)
-  - 51821/TCP (WireGuard Web UI)
+- Domain name with DNS configuration
+- Port forwarding: 80/443 (HTTP/HTTPS), 51820/UDP (WireGuard)
 
-## Installation Guide
-
-### 1. Install K3s
+### Basic Installation
 
 ```bash
-curl -sfL https://get.k3s.io | sh -
-```
-
-For a minimal installation without Traefik (since we'll use NGINX Ingress):
-
-```bash
+# Install K3s without Traefik
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -
-```
 
-### 2. Install NGINX Ingress Controller
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/cloud/deploy.yaml
-```
-
-### 3. Install cert-manager
-
-```bash
-helm repo add jetstack https://charts.jetstack.io
-helm repo update
-
-helm install cert-manager jetstack/cert-manager \
-  --namespace cert-manager \
-  --create-namespace \
-  --version v1.12.0 \
-  --set installCRDs=true
-```
-
-Apply the ClusterIssuer configuration:
-
-```bash
-kubectl apply -f k8s/certmanager/cluster-issuer.yaml
-```
-
-### 4. Create Required Namespaces
-
-```bash
+# Create namespaces
 kubectl create namespace domotica
 kubectl create namespace http
+kubectl create namespace ai
+kubectl create namespace db
 kubectl create namespace pihole
 kubectl create namespace wireguard
-kubectl create namespace restic
 ```
 
-### 5. Create Secrets
+### Deploy Services
 
-Create the required secrets (see SECRETS.md for templates):
-
-```bash
-# For WireGuard
-kubectl apply -f wireguard-secrets.yaml
-
-# For Pi-hole
-kubectl apply -f pihole-secret.yaml
-```
-
-### 6. Apply Storage Configuration
+Using Kustomize directly:
 
 ```bash
-kubectl apply -f k8s/local-path-config.yaml
-```
-
-### 7. Install ArgoCD (Optional, for GitOps)
-
-```bash
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl apply -f k8s/argocd/configmap.yml
-kubectl apply -f k8s/argocd/ingress.yml
-
-# Get the initial admin password
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-```
-
-### 8. Deploy the Services
-
-Using kubectl and kustomize:
-
-```bash
-# Deploy all services
-kubectl apply -k k8s/base/
-
-# Or deploy individual services
+# Deploy all base services
 kubectl apply -k k8s/base/domotica/
 kubectl apply -k k8s/base/http/
+kubectl apply -k k8s/base/ai/
+kubectl apply -k k8s/base/db/
 kubectl apply -k k8s/base/pihole/
 kubectl apply -k k8s/base/wireguard/
-```
 
-Or using ArgoCD:
-
-1. Create an application in ArgoCD pointing to your Git repository
-2. Set the path to `k8s/base`
-3. Set the destination to your cluster
-4. Enable auto-sync
-
-## Service Configuration
-
-### Home Assistant and ESPHome
-
-The configuration files are stored in persistent volumes:
-- Home Assistant: `/mnt/storage/ha-config-pvc`
-- ESPHome: `/mnt/storage/esphome-config-pvc`
-
-### Pi-hole
-
-The Pi-hole configuration files are stored in:
-- `/mnt/storage/pihole-etc-pvc`
-- `/mnt/storage/dnsmasq-etc-pvc`
-
-### WireGuard
-
-The WireGuard configuration files are stored in:
-- `/mnt/storage/wireguard-data-pvc`
-
-### CoreDNS
-
-To add local DNS entries, edit the ConfigMap:
-
-```bash
-kubectl edit configmap coredns -n kube-system
-```
-
-Or apply the configuration from the repository:
-
-```bash
-kubectl apply -k k8s/coredns/
-```
-
-## Environment-Specific Configurations
-
-The repository includes overlay directories for development and production environments:
-
-```bash
-# For development
-kubectl apply -k k8s/overlays/development/
-
-# For production
-kubectl apply -k k8s/overlays/production/
-```
-
-## Accessing Services
-
-### Local Network
-
-Services with LoadBalancer type (Home Assistant, ESPHome, Pi-hole, WireGuard) can be accessed directly via the node IP:
-
-- Home Assistant: `http://<node-ip>:8123`
-- ESPHome: `http://<node-ip>:6052`
-- Pi-hole: `http://<node-ip>:8000`
-- WireGuard Web UI: `http://<node-ip>:51821`
-
-### External Access (via Ingress)
-
-All services configured with Ingress can be accessed via their respective domain names:
-
-- Home Assistant: `https://my.domain.tld/`
-- ESPHome: `https://my.domain.tld/esphome/`
-- Pi-hole: `https://my.domain.tld/pihole/`
-- Personal Website: `https://my.domain.tld/` and `https://www.my.domain.tld/`
-- SC Mapping: `https://second.domain.tld/`
-- ArgoCD: `https://argocd.my.domain.tld/`
-
-## Monitoring and Troubleshooting
-
-### Check Ingress Status
-
-```bash
-kubectl get ingress --all-namespaces
-kubectl describe ingress <ingress-name> -n <namespace>
-```
-
-### Check Certificates
-
-```bash
-kubectl get certificate --all-namespaces
-kubectl describe certificate <cert-name> -n <namespace>
-```
-
-### Check Running Pods
-
-```bash
+# Verify deployment
 kubectl get pods --all-namespaces
-kubectl describe pod <pod-name> -n <namespace>
 ```
 
-### View Logs
+Using ArgoCD (recommended):
 
 ```bash
-kubectl logs <pod-name> -n <namespace>
+# Install ArgoCD
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Deploy ArgoCD applications
+kubectl apply -f k8s/argocd/apps/
 ```
 
-## Backup and Restore
+See [ARGOCD.md](docs/ARGOCD.md) for detailed GitOps setup.
 
-For backup management, the setup includes Backrest, a web UI for Restic backups.
+## Common Operations
+
+### Check Service Status
 
 ```bash
-kubectl apply -k k8s/base/backrest/
+# View all pods
+kubectl get pods --all-namespaces
+
+# Check specific namespace
+kubectl get pods -n domotica
+
+# View logs
+kubectl logs -f <pod-name> -n <namespace>
 ```
 
-Access the Backrest UI at `http://<node-ip>:9898`
+### Manage Persistent Storage
 
-## Storage Management
+```bash
+# List persistent volume claims
+kubectl get pvc -A
 
-For detailed information about persistent storage configuration, volume management, backups, and troubleshooting, see the [Storage Management Guide](STORAGE.md).
+# Check storage usage on host
+df -h /mnt/storage/*
+```
 
-## Security Considerations
+See [STORAGE.md](docs/STORAGE.md) for backup and restore procedures.
 
-- Credentials are stored in Kubernetes secrets
-- HTTPS is enforced via cert-manager and Let's Encrypt
-- WireGuard provides secure remote access to the network
-- Resources are isolated using namespaces
+### Certificate Management
+
+```bash
+# Check certificate status
+kubectl get certificate -A
+
+# View cert-manager logs
+kubectl logs -n cert-manager deployment/cert-manager
+```
+
+### Update Deployment
+
+```bash
+# Apply configuration changes
+kubectl apply -k k8s/base/<category>/
+
+# Restart deployment
+kubectl rollout restart deployment <deployment-name> -n <namespace>
+
+# Check rollout status
+kubectl rollout status deployment <deployment-name> -n <namespace>
+```
 
 ## Resource Requirements
 
-The entire setup requires approximately:
-- 2-4 CPU cores
-- 4-8 GB RAM
-- 50+ GB storage space
+Minimum resource allocation:
+- CPU: 2-4 cores
+- RAM: 4-8 GB
+- Storage: 50+ GB for persistent volumes
 
-Individual service requirements are defined in the deployment manifests with resource limits.
+Individual service limits are defined in deployment manifests.
+
+## Security
+
+- Secrets managed through Kubernetes Secret resources
+- TLS certificates automated via cert-manager and Let's Encrypt
+- VPN access through WireGuard
+- Namespace isolation for service separation
 
 ## References
 
-- K3s: https://k3s.io/
-- ArgoCD: https://argo-cd.readthedocs.io/
-- Kustomize: https://kustomize.io/
-- Home Assistant: https://www.home-assistant.io/
-- ESPHome: https://esphome.io/
-- Pi-hole: https://pi-hole.net/
-- WireGuard: https://www.wireguard.com/
-- Cert-Manager: https://cert-manager.io/
+- [K3s Documentation](https://docs.k3s.io/)
+- [Kustomize Documentation](https://kustomize.io/)
+- [ArgoCD Documentation](https://argo-cd.readthedocs.io/)
+- [Home Assistant](https://www.home-assistant.io/)
+- [Cheshire Cat AI](https://cheshire-cat-ai.github.io/docs/)
