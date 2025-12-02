@@ -10,7 +10,7 @@ Infrastructure repository for K3s-based home services deployment using GitOps wi
 - **Configuration Management**: Kustomize for declarative configuration
 - **Ingress**: NGINX Ingress Controller for HTTP/HTTPS routing
 - **Certificate Management**: cert-manager with Let's Encrypt
-- **Storage**: local-path-provisioner for persistent volumes at `/mnt/storage`
+- **Storage**: local-path-provisioner for persistent volumes (default: `/var/lib/rancher/k3s/storage`)
 - **DNS**: CoreDNS with custom host entries
 
 ### Repository Structure

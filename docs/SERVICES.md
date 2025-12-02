@@ -9,7 +9,7 @@ This document provides detailed information about each service deployed in the c
 Home automation platform for controlling smart home devices and automation.
 
 **Configuration:**
-- Persistent storage: `/mnt/storage/ha-config-pvc-*` (12Gi)
+- Persistent storage: `/mnt/storage/pvc-xxx_domotica_ha-config-pvc/` (migrated from default location)
 - ConfigMap: Additional configuration via `homeassistant-config`
 - Resource limits: 2Gi memory, 1 CPU core
 
@@ -37,7 +37,7 @@ kubectl rollout restart deployment homeassistant -n domotica
 Management platform for ESP32/ESP8266 devices with over-the-air updates.
 
 **Configuration:**
-- Persistent storage: `/mnt/storage/esphome-config-pvc-*` (4Gi)
+- Persistent storage: `/mnt/storage/pvc-xxx_domotica_esphome-config-pvc/` (migrated from default location)
 - Resource limits: 1Gi memory, 500m CPU
 
 **Access:**
@@ -147,10 +147,10 @@ kubectl rollout restart deployment nicolatomassoni -n http
 AI conversational agent with Retrieval-Augmented Generation (RAG) capabilities.
 
 **Configuration:**
-- Persistent storage:
-  - `/app/cat/data` - Vector embeddings and conversation history
-  - `/app/cat/plugins` - Custom plugins
-  - `/app/cat/static` - Static assets
+- Persistent storage (default location `/var/lib/rancher/k3s/storage`):
+  - `cheshire-cat-data` - Vector embeddings and conversation history
+  - `cheshire-cat-plugins` - Custom plugins
+  - `cheshire-cat-static` - Static assets
 - Secret required: `cheshire-cat-secrets` with API keys
 - Resource limits: 4Gi memory, 2 CPU cores
 - Depends on Qdrant vector database
@@ -195,7 +195,7 @@ kubectl logs -n ai deployment/cheshire-cat-core | grep -i qdrant
 Relational database for applications requiring structured data storage.
 
 **Configuration:**
-- Persistent storage: `/mnt/storage/mysql-data-pvc-*`
+- Persistent storage: `/var/lib/rancher/k3s/storage/pvc-xxx_db_mysql-data-mysql-0/`
 - Secret required: `mysql-secret` with root password
 - Resource limits: 2Gi memory, 1 CPU core
 
@@ -262,9 +262,9 @@ kubectl exec -it -n ai deployment/cheshire-cat-core -- \
 Network-wide ad blocking and DNS management.
 
 **Configuration:**
-- Persistent storage:
-  - `/mnt/storage/pihole-etc-pvc-*` (1Gi) - Pi-hole configuration
-  - `/mnt/storage/dnsmasq-etc-pvc-*` (8Gi) - DNS configuration
+- Persistent storage (default location `/var/lib/rancher/k3s/storage`):
+  - `pihole-etc-pvc` - Pi-hole configuration
+  - `dnsmasq-etc-pvc` - DNS configuration
 - Secret required: `pihole-secret` with web password
 - Resource limits: 512Mi memory, 500m CPU
 
@@ -304,7 +304,7 @@ stringData:
 VPN server with web-based client management interface.
 
 **Configuration:**
-- Persistent storage: `/mnt/storage/wireguard-data-pvc-*` (4Gi)
+- Persistent storage: `/mnt/storage/pvc-xxx_wireguard_wireguard-data-pvc/` (migrated from default location)
 - Secret required: `wireguard-secrets` with web UI password hash
 - Resource limits: 512Mi memory, 500m CPU
 
@@ -364,9 +364,9 @@ Certificates are automatically renewed by cert-manager 30 days before expiration
 
 ## Persistent Storage
 
-All services with persistent storage use local-path provisioner with volumes stored at `/mnt/storage` on the host.
+Services with persistent storage use local-path provisioner. Most volumes use the default location `/var/lib/rancher/k3s/storage`, while some have been manually migrated to `/mnt/storage` (Home Assistant, ESPHome, WireGuard).
 
-See [STORAGE.md](STORAGE.md) for detailed storage management procedures.
+See [STORAGE.md](STORAGE.md) for detailed storage management procedures, backup strategies, and volume migration instructions.
 
 ## Adding New Services
 
