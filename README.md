@@ -64,6 +64,7 @@ The following services are currently deployed through Kustomize:
 Detailed documentation is available in the `docs/` directory:
 
 - [STORAGE.md](docs/STORAGE.md) - Persistent storage management, backup and restore procedures
+- [VOLUME-MIGRATION.md](docs/VOLUME-MIGRATION.md) - Guide for migrating volumes to /mnt/storage
 - [SECRETS.md](docs/SECRETS.md) - Secret templates for services requiring credentials
 - [ARGOCD.md](docs/ARGOCD.md) - ArgoCD setup and GitOps workflow
 - [SERVICES.md](docs/SERVICES.md) - Service-specific configuration and access information
