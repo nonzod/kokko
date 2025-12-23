@@ -23,8 +23,6 @@ spec:
         image: rhasspy/wyoming-openwakeword:latest
         imagePullPolicy: Always
         args:
-          - "--preload-model"
-          - "ok_nabu"
           - "--data-dir"
           - "/data"
           - "--debug"
