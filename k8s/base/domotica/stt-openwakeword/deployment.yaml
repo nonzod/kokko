@@ -11,6 +11,13 @@ spec:
       labels:
         app: stt-openwakeword
     spec:
+      initContainers:
+      - name: fix-permissions
+        image: busybox:latest
+        command: ["sh", "-c", "chmod -R 777 /data"]
+        volumeMounts:
+        - name: openwakeword-data
+          mountPath: /data
       containers:
       - name: stt-openwakeword
         image: rhasspy/wyoming-openwakeword:latest
@@ -20,6 +27,7 @@ spec:
           - "ok_nabu"
           - "--data-dir"
           - "/data"
+          - "--debug"
         ports:
         - containerPort: 10400
           name: wyoming
