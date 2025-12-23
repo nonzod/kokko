@@ -29,8 +29,8 @@ spec:
             python3 -m wyoming_satellite \
               --name "k3s-satellite" \
               --uri "tcp://0.0.0.0:10700" \
-              --mic-uri "alsa:device=hw:1,0" \
-              --snd-uri "alsa:device=hw:1,0" \
+              --mic-command "arecord -D plughw:1,0 -r 16000 -c 1 -f S16_LE -t raw" \
+              --snd-command "aplay -D plughw:1,0 -r 22050 -c 1 -f S16_LE -t raw" \
               --wake-uri "tcp://stt-openwakeword.domotica.svc.cluster.local:10400" \
               --wake-word-name "ok_nabu" \
               --debug
