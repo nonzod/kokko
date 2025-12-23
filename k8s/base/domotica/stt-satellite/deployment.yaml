@@ -24,9 +24,15 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
           - |
-            apt-get update && apt-get install -y alsa-utils libasound2-plugins
-            pip install --no-cache-dir wyoming-satellite
-            python3 -m wyoming_satellite \
+            if ! command -v arecord &> /dev/null; then
+              apt-get update && apt-get install -y alsa-utils libasound2-plugins
+            fi
+            if ! python3 -c "import wyoming_satellite" &> /dev/null; then
+              pip install --no-cache-dir "wyoming-satellite[silerovad]"
+            fi
+            
+            echo "Starting wyoming_satellite..."
+            exec python3 -m wyoming_satellite \
               --name "k3s-satellite" \
               --uri "tcp://0.0.0.0:10700" \
               --mic-command "arecord -D plughw:2,0 -r 16000 -c 1 -f S16_LE -t raw" \
@@ -40,10 +46,10 @@ spec:
           name: wyoming
         resources:
           limits:
-            memory: 256Mi
+            memory: 512Mi
             cpu: "0.5"
           requests:
-            memory: 64Mi
+            memory: 128Mi
             cpu: "0.05"
         volumeMounts:
         - name: dev-snd
