@@ -16,24 +16,23 @@ spec:
         role: voice-satellite
       containers:
       - name: stt-satellite
-        image: rhasspy/wyoming-satellite:latest
+        image: python:3.11-slim-bookworm
         imagePullPolicy: Always
         securityContext:
           privileged: true
+        command: ["/bin/bash", "-c"]
         args:
-          - "--name"
-          - "k3s-satellite"
-          - "--uri"
-          - "tcp://0.0.0.0:10700"
-          - "--mic-uri"
-          - "alsa:device=hw:1,0"
-          - "--snd-uri"
-          - "alsa:device=hw:1,0"
-          - "--wake-uri"
-          - "tcp://stt-openwakeword.domotica.svc.cluster.local:10400"
-          - "--wake-word-name"
-          - "ok_nabu"
-          - "--debug"
+          - |
+            apt-get update && apt-get install -y alsa-utils libasound2-plugins
+            pip install --no-cache-dir wyoming-satellite
+            python3 -m wyoming_satellite \
+              --name "k3s-satellite" \
+              --uri "tcp://0.0.0.0:10700" \
+              --mic-uri "alsa:device=hw:1,0" \
+              --snd-uri "alsa:device=hw:1,0" \
+              --wake-uri "tcp://stt-openwakeword.domotica.svc.cluster.local:10400" \
+              --wake-word-name "ok_nabu" \
+              --debug
         ports:
         - containerPort: 10700
           name: wyoming
