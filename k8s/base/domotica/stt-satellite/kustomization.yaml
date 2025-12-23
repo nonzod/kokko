@@ -1,0 +1,5 @@
+          mountPath: /dev/snd
+      volumes:
+      - name: dev-snd
+        hostPath:
+          path: /dev/snd

@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stt-satellite
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stt-satellite
+  template:
+    metadata:
+      labels:
+        app: stt-satellite
+    spec:
+      nodeSelector:
+        role: voice-satellite
+      containers:
+      - name: stt-satellite
+        image: rhasspy/wyoming-satellite:latest
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true
+        args:
+          - "--name"
+          - "k3s-satellite"
+          - "--uri"
+          - "tcp://0.0.0.0:10700"
+          - "--mic-uri"
+          - "alsa:device=hw:1,0"
+          - "--snd-uri"
+          - "alsa:device=hw:1,0"
+          - "--wake-uri"
+          - "tcp://stt-openwakeword:10400"
+          - "--wake-word-name"
+          - "ok_nabu"

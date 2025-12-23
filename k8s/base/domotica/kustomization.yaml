@@ -11,3 +11,6 @@ resources:
 - mpd-server
 - rtsp-server
 - wyoming-piper
+- stt-whisper
+- stt-openwakeword
+- stt-satellite

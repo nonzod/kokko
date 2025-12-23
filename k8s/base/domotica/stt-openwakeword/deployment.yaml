@@ -1,0 +1,29 @@
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stt-openwakeword
+spec:
+  selector:
+    matchLabels:
+      app: stt-openwakeword
+  template:
+    metadata:
+      labels:
+        app: stt-openwakeword
+    spec:
+      containers:
+      - name: stt-openwakeword
+        image: rhasspy/wyoming-openwakeword:latest
+        imagePullPolicy: Always
+        args:
+          - "--preload-model"
+          - "ok_nabu"
+          - "--data-dir"
+          - "/data"
+        ports:
+        - containerPort: 10400
+          name: wyoming
+        resources:
+          limits:

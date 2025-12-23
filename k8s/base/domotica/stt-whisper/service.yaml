@@ -1,0 +1,10 @@
+          limits:
+            memory: 1Gi
+            cpu: "1"
+          requests:
+            memory: 256Mi
+            cpu: "0.1"
+        volumeMounts:
+        - name: whisper-data
+          mountPath: /data
+      volumes:
