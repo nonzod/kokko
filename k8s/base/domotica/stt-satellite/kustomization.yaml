@@ -1,5 +1,5 @@
-          mountPath: /dev/snd
-      volumes:
-      - name: dev-snd
-        hostPath:
-          path: /dev/snd
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - service.yaml

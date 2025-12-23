@@ -1,10 +1,12 @@
-            cpu: "0.5"
-          requests:
-            memory: 128Mi
-            cpu: "0.05"
-        volumeMounts:
-        - name: openwakeword-data
-          mountPath: /data
-      volumes:
-      - name: openwakeword-data
-        persistentVolumeClaim:
+apiVersion: v1
+kind: Service
+metadata:
+  name: stt-openwakeword
+spec:
+  selector:
+    app: stt-openwakeword
+  ports:
+  - name: wyoming
+    port: 10400
+    targetPort: 10400
+  type: ClusterIP

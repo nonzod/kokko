@@ -33,3 +33,20 @@ spec:
           - "tcp://stt-openwakeword:10400"
           - "--wake-word-name"
           - "ok_nabu"
+        ports:
+        - containerPort: 10700
+          name: wyoming
+        resources:
+          limits:
+            memory: 256Mi
+            cpu: "0.5"
+          requests:
+            memory: 64Mi
+            cpu: "0.05"
+        volumeMounts:
+        - name: dev-snd
+          mountPath: /dev/snd
+      volumes:
+      - name: dev-snd
+        hostPath:
+          path: /dev/snd

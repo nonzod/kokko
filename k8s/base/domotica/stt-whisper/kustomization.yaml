@@ -1,6 +1,6 @@
-        persistentVolumeClaim:
-          claimName: stt-whisper-data-pvc
----
-apiVersion: v1
-kind: Service
-metadata:
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml

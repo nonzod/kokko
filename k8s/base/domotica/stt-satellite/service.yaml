@@ -1,10 +1,12 @@
-        - containerPort: 10700
-          name: wyoming
-        resources:
-          limits:
-            memory: 256Mi
-            cpu: "0.5"
-          requests:
-            memory: 64Mi
-            cpu: "0.05"
-        volumeMounts:
+apiVersion: v1
+kind: Service
+metadata:
+  name: stt-satellite
+spec:
+  selector:
+    app: stt-satellite
+  ports:
+  - name: wyoming
+    port: 10700
+    targetPort: 10700
+  type: ClusterIP
