@@ -30,9 +30,10 @@ spec:
           - "--snd-uri"
           - "alsa:device=hw:1,0"
           - "--wake-uri"
-          - "tcp://stt-openwakeword:10400"
+          - "tcp://stt-openwakeword.domotica.svc.cluster.local:10400"
           - "--wake-word-name"
           - "ok_nabu"
+          - "--debug"
         ports:
         - containerPort: 10700
           name: wyoming
