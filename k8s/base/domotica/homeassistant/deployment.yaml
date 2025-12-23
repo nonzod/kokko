@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: homeassistant
 spec:
+  revisionHistoryLimit: 4
   selector:
     matchLabels:
       app: homeassistant

@@ -7,7 +7,7 @@ metadata:
   labels:
     app: nicolatomassoni-website
 spec:
-  revisionHistoryLimit: 3
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: nicolatomassoni-website

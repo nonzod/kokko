@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: stt-satellite
 spec:
+  revisionHistoryLimit: 2
   replicas: 1
   selector:
     matchLabels:

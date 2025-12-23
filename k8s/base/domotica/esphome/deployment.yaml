@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: esphome
 spec:
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: esphome

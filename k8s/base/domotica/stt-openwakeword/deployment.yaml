@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: stt-openwakeword
 spec:
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: stt-openwakeword

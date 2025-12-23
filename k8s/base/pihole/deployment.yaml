@@ -4,6 +4,7 @@ metadata:
   name: pihole
   namespace: pihole
 spec:
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: pihole

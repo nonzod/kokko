@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: rtsp-server
 spec:
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: rtsp-server
