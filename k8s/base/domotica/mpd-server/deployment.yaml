@@ -70,7 +70,6 @@ spec:
       - name: pulse-socket
         hostPath:
           path: /run/user/1000/pulse
-          type: Directory
       - name: music
         hostPath:
           path: /mnt/music
