@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: hugo
-        image: ghcr.io/nonzod/personal-website:2b6a50de60548257be4c4cee6e3262d9156e87fb
+        image: ghcr.io/nonzod/personal-website:4f6e2d3324f6e40c3c860db82a241a9a7b23c0b8
         ports:
         - containerPort: 80
         resources:
