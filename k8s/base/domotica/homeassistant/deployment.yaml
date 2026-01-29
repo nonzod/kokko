@@ -4,6 +4,8 @@ metadata:
   name: homeassistant
 spec:
   revisionHistoryLimit: 4
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: homeassistant
