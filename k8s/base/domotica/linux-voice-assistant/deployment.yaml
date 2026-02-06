@@ -14,8 +14,8 @@ spec:
     spec:
       containers:
       - name: linux-voice-assistant
-        image: linux-voice-assistant:latest # IMPORTANT: Build the image locally first
-        imagePullPolicy: IfNotPresent
+        image: nonzod/linux-voice-assistant:latest
+        imagePullPolicy: Always
         args:
           - "--name"
           - "linux-voice-assistant"
