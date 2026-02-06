@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: linux-voice-assistant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: linux-voice-assistant
+  template:
+    metadata:
+      labels:
+        app: linux-voice-assistant
+    spec:
+      containers:
+      - name: linux-voice-assistant
+        image: linux-voice-assistant:latest # IMPORTANT: Build the image locally first
+        imagePullPolicy: IfNotPresent
+        args:
+          - "--name"
+          - "linux-voice-assistant"
+          - "--audio-input-device"
+          - "plughw:2,0"
+          - "--audio-output-device"
+          - "plughw:1,0"
+        # This application needs access to the host's sound devices.
+        # This requires running the container in privileged mode, which has security implications.
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: snd
+          mountPath: /dev/snd
+        resources:
+          limits:
+            memory: 512Mi
+            cpu: "0.5"
+          requests:
+            memory: 128Mi
+            cpu: "0.05"
+      volumes:
+      - name: snd
+        hostPath:
+          path: /dev/snd
