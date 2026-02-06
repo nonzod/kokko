@@ -28,7 +28,7 @@ spec:
           name: wyoming
         resources:
           limits:
-            memory: 1Gi
+            memory: 2Gi
             cpu: "1"
           requests:
             memory: 256Mi
