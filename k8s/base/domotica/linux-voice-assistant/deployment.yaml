@@ -16,7 +16,6 @@ spec:
       - name: linux-voice-assistant
         image: nonzod/linux-voice-assistant:latest
         imagePullPolicy: Always
-        command: ["python3", "-m", "linux_voice_assistant"]
         args:
           - "--name"
           - "linux-voice-assistant"
