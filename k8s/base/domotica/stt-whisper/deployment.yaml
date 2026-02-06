@@ -18,7 +18,7 @@ spec:
         imagePullPolicy: Always
         args:
           - "--model"
-          - "tiny-int8"
+          - "base-int8"
           - "--language"
           - "it"
           - "--data-dir"
