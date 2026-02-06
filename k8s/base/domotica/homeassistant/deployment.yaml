@@ -15,6 +15,33 @@ spec:
         app: homeassistant
     spec:
       containers:
+      - name: wireguard-client
+        image: lscr.io/linuxserver/wireguard:latest
+        imagePullPolicy: Always
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+              - SYS_MODULE
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        resources:
+          limits:
+            memory: 128Mi
+            cpu: "0.1"
+          requests:
+            memory: 64Mi
+            cpu: "0.05"
+        volumeMounts:
+        - name: wireguard-config
+          mountPath: /config/wg_confs/wg0.conf
+          subPath: wg0.conf
+        - name: lib-modules
+          mountPath: /lib/modules
+          readOnly: true
       - name: homeassistant
         image: ghcr.io/home-assistant/home-assistant:stable
         imagePullPolicy: Always
@@ -48,6 +75,13 @@ spec:
       - name: ha-config
         persistentVolumeClaim:
           claimName: ha-config-pvc
+      - name: wireguard-config
+        secret:
+          secretName: homeassistant-wireguard-client
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
+          type: Directory
       dnsConfig:
         options:
           - name: ndots
