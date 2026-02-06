@@ -40,7 +40,6 @@ spec:
               --wake-uri "tcp://stt-openwakeword.domotica.svc.cluster.local:10400" \
               --wake-word-name "okay_nabu" \
               --event-uri "tcp://stt-whisper.domotica.svc.cluster.local:10300" \
-              --no-vad \
               --debug
         ports:
         - containerPort: 10700
