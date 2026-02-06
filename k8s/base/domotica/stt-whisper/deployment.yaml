@@ -16,19 +16,7 @@ spec:
       - name: stt-whisper
         image: rhasspy/wyoming-whisper:latest
         imagePullPolicy: Always
-        command:
-          - "sh"
-          - "-c"
-        args:
-          - |
-            echo "Upgrading wyoming-faster-whisper with --break-system-packages..."
-            pip install --upgrade --break-system-packages wyoming-faster-whisper
-            echo "Starting wyoming-faster-whisper..."
-            exec python3 -m wyoming_faster_whisper \
-              --uri tcp://0.0.0.0:10300 \
-              --model base-int8 \
-              --language it \
-              --data-dir /data
+        args: ["--model", "tiny-int8", "--language", "en"]
         ports:
         - containerPort: 10300
           name: wyoming
