@@ -39,7 +39,7 @@ spec:
               --snd-command "aplay -D plughw:1,0 -r 22050 -c 1 -f S16_LE -t raw" \
               --wake-uri "tcp://stt-openwakeword.domotica.svc.cluster.local:10400" \
               --wake-word-name "okay_nabu" \
-              --stt-uri "tcp://stt-whisper.domotica.svc.cluster.local:10300" \
+              --event-uri "tcp://stt-whisper.domotica.svc.cluster.local:10300" \
               --vad \
               --debug
         ports:
