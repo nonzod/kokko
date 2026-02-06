@@ -18,5 +18,8 @@ RUN git clone https://github.com/OHF-Voice/linux-voice-assistant.git .
 # Install python dependencies
 RUN pip install --no-cache-dir -e .
 
-# Set the command to run the application
-CMD ["python3", "-m", "linux_voice_assistant"]
+# Set the entrypoint
+ENTRYPOINT ["python3", "-m", "linux_voice_assistant"]
+
+# Default arguments
+CMD []
