@@ -25,7 +25,7 @@ spec:
         imagePullPolicy: Always
         args:
           - "--preload-model"
-          - "ok_nabu"
+          - "okay_nabu"
           - "--custom-model-dir"
           - "/data"
           - "--debug"
