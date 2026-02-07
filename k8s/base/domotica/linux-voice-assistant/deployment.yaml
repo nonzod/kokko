@@ -20,7 +20,7 @@ spec:
           - "--name"
           - "linux-voice-assistant"
           - "--audio-input-device"
-          - "alsa_input.2.usb"
+          - "alsa_input.2.mono-fallback"
           - "--audio-output-device"
           - "pulse/alsa_output.1.analog-stereo"
         # This application needs access to the host's sound devices.
