@@ -20,9 +20,9 @@ spec:
           - "--name"
           - "linux-voice-assistant"
           - "--audio-input-device"
-          - "plughw:2,0"
+          - "alsa_input.2.mono-fallback"
           - "--audio-output-device"
-          - "plughw:1,0"
+          - "pulse/alsa_output.1.analog-stereo"
         # This application needs access to the host's sound devices.
         # This requires running the container in privileged mode, which has security implications.
         securityContext:
