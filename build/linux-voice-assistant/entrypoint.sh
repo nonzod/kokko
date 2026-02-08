@@ -65,5 +65,20 @@ echo "--- Sources (input) ---"
 pactl list sources short 2>&1 || true
 echo "==================================="
 
+# Load echo cancellation module (speex method)
+echo "=== Loading echo cancellation ==="
+if pactl load-module module-echo-cancel \
+    source_master=alsa_input.2.mono-fallback \
+    sink_master=alsa_output.1.analog-stereo 2>&1; then
+    echo "Echo cancellation module loaded"
+    echo "--- Updated sources ---"
+    pactl list sources short 2>&1 || true
+    echo "--- Updated sinks ---"
+    pactl list sinks short 2>&1 || true
+else
+    echo "Warning: Echo cancellation failed, continuing without it"
+fi
+echo "==================================="
+
 # Launch the application with all passed arguments
 exec python3 -m linux_voice_assistant "$@"

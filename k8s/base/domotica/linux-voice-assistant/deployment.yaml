@@ -16,21 +16,14 @@ spec:
       - name: linux-voice-assistant
         image: nonzod/linux-voice-assistant:latest
         imagePullPolicy: Always
-        command: ["/bin/bash", "-c"]
         args:
-          - |
-            # Load PulseAudio echo cancellation module (speex)
-            pactl load-module module-echo-cancel \
-              source_master=alsa_input.2.mono-fallback \
-              sink_master=alsa_output.1.analog-stereo && \
-            echo "Echo cancellation module loaded" || \
-            echo "Warning: Echo cancellation failed, continuing without it"
-
-            exec python3 -m linux_voice_assistant \
-              --name "linux-voice-assistant" \
-              --debug \
-              --audio-input-device "USB PnP Sound Device Mono (echo cancelled with HDA Intel PCH Analog Stereo)" \
-              --audio-output-device "pulse/alsa_output.1.analog-stereo.echo-cancel"
+          - "--name"
+          - "linux-voice-assistant"
+          - "--debug"
+          - "--audio-input-device"
+          - "USB PnP Sound Device Mono (echo cancelled with HDA Intel PCH Analog Stereo)"
+          - "--audio-output-device"
+          - "pulse/alsa_output.1.analog-stereo.echo-cancel"
         # This application needs access to the host's sound devices.
         # This requires running the container in privileged mode, which has security implications.
         securityContext:
