@@ -11,3 +11,5 @@ resources:
 - mpd-server
 - rtsp-server
 - linux-voice-assistant
+- tts-piper
+- stt-whisper

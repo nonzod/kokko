@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: wyoming-piper
+  name: tts-piper
 spec:
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      app: wyoming-piper
+      app: tts-piper
   template:
     metadata:
       labels:
-        app: wyoming-piper
+        app: tts-piper
     spec:
       initContainers:
       - name: download-voice
@@ -28,7 +28,7 @@ spec:
         - name: piper-data
           mountPath: /data
       containers:
-      - name: wyoming-piper
+      - name: tts-piper
         image: rhasspy/wyoming-piper:latest
         imagePullPolicy: Always
         args:
