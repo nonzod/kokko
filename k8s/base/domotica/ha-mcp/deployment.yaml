@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ha-mcp
+spec:
+  revisionHistoryLimit: 4
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ha-mcp
+  template:
+    metadata:
+      labels:
+        app: ha-mcp
+    spec:
+      containers:
+      - name: ha-mcp
+        image: ghcr.io/homeassistant-ai/ha-mcp:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8086
+          name: http
+        env:
+        - name: HOMEASSISTANT_URL
+          value: "http://homeassistant-web.domotica.svc.cluster.local:8123"
+        - name: HOMEASSISTANT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: ha-mcp-homeassistant-token
+              key: token
+        - name: MCP_SECRET_PATH
+          value: "/private_1234567890"  # Il valore verrà generato in fase di deployment
+        resources:
+          limits:
+            memory: 512Mi
+            cpu: "0.5"
+          requests:
+            memory: 256Mi
+            cpu: "00.25"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8086
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8086
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5

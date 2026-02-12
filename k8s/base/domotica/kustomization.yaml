@@ -12,3 +12,4 @@ resources:
 - rtsp-server
 - linux-voice-assistant
 - stt-whisper
+- ha-mcp
