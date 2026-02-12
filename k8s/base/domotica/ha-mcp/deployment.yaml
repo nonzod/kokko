@@ -18,6 +18,7 @@ spec:
       - name: ha-mcp
         image: ghcr.io/homeassistant-ai/ha-mcp:stable
         imagePullPolicy: Always
+        command: ["python", "-m", "ha_mcp.main_web"]
         ports:
         - containerPort: 8086
           name: http
