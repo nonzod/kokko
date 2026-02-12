@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: ha-mcp
-        image: ghcr.io/homeassistant-ai/ha-mcp:latest
+        image: ghcr.io/homeassistant-ai/ha-mcp:stable
         imagePullPolicy: Always
         ports:
         - containerPort: 8086
