@@ -5,7 +5,7 @@ metadata:
 spec:
   selector:
     app: ha-mcp
-  type: ClusterIP
+  type: NodePort
   ports:
   - port: 8086
     targetPort: 8086
