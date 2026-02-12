@@ -38,17 +38,3 @@ spec:
           requests:
             memory: 256Mi
             cpu: "00.25"
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 8086
-          initialDelaySeconds: 10
-          periodSeconds: 30
-          timeoutSeconds: 5
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 8086
-          initialDelaySeconds: 5
-          periodSeconds: 10
-          timeoutSeconds: 5
