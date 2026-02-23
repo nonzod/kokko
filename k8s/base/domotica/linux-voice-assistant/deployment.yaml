@@ -31,6 +31,8 @@ spec:
         volumeMounts:
         - name: snd
           mountPath: /dev/snd
+        - name: usb
+          mountPath: /dev/bus/usb
         resources:
           limits:
             memory: 1024Mi
@@ -42,3 +44,6 @@ spec:
       - name: snd
         hostPath:
           path: /dev/snd
+      - name: usb
+        hostPath:
+          path: /dev/bus/usb
