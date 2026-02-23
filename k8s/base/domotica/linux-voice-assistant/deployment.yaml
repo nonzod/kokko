@@ -21,9 +21,9 @@ spec:
           - "linux-voice-assistant"
           - "--debug"
           - "--audio-input-device"
-          - "USB PnP Sound Device Mono (echo cancelled with HDA Intel PCH Analog Stereo)"
+          - "alsa_input.0.mono-fallback"
           - "--audio-output-device"
-          - "pulse/alsa_output.1.analog-stereo.echo-cancel"
+          - "alsa_output.2.analog-stereo"
         # This application needs access to the host's sound devices.
         # This requires running the container in privileged mode, which has security implications.
         securityContext:
