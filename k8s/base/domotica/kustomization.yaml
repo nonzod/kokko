@@ -10,6 +10,6 @@ resources:
 - samba
 - mpd-server
 - rtsp-server
-- linux-voice-assistant
-- stt-whisper
-- ha-mcp
+# - linux-voice-assistant
+# - stt-whisper
+# - ha-mcp

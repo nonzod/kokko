@@ -1,0 +1,9 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "ha-mcp": {
+      "type": "remote",
+      "url": "http://192.168.178.43:30689/private_1234567890"
+    }
+  }
+}
