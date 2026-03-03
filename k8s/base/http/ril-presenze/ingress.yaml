@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ril-presenze-ingress
+  namespace: http
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: "letsencrypt-office"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - rp.nicolatomassoni.it
+      secretName: ril-presenze-tls
+  rules:
+  - host: "rp.nicolatomassoni.it"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: ril-presenze-service
+            port:
+              number: 80

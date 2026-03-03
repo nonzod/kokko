@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: http
 
 resources:
-- namespace.yaml
-- nicolatomassoni
-- ril-presenze
+- deployment.yaml
+- service.yaml
+- ingress.yaml
+- secret.yaml
