@@ -16,6 +16,16 @@ spec:
       labels:
         app: ril-presenze
     spec:
+      initContainers:
+      - name: migrate
+        image: nonzod/ril_presenze:latest
+        command: ["npx", "tsx", "scripts/migrate.ts"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: ril-presenze-secret
+              key: DATABASE_URL
       containers:
       - name: ril-presenze
         image: nonzod/ril_presenze:latest
