@@ -60,6 +60,8 @@ spec:
             secretKeyRef:
               name: ril-presenze-secret
               key: SHOPIFY_WEBHOOK_SECRET
+        - name: BODY_SIZE_LIMIT
+          value: "52428800"
         resources:
           requests:
             memory: "128Mi"
