@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: http
 
 resources:
+- pvc.yaml
 - deployment.yaml
 - service.yaml
 - ingress.yaml
