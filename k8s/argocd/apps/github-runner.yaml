@@ -1,0 +1,19 @@
+project: default
+source:
+  repoURL: https://actions-runner-controller.github.io/actions-runner-controller
+  targetRevision: 0.23.7
+  helm:
+    parameters:
+      - name: authSecret.create
+        value: 'false'
+  chart: actions-runner-controller
+destination:
+  server: https://kubernetes.default.svc
+  namespace: actions-runner-system
+syncPolicy:
+  automated:
+    prune: true
+    selfHeal: true
+  syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
