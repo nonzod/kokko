@@ -59,18 +59,18 @@ spec:
                   key: DATABASE_URL
             - name: SMTP_HOST
               valueFrom:
-                secretKeyRef:
-                  name: nz-courses-secret
+                configMapKeyRef:
+                  name: nz-courses-config
                   key: SMTP_HOST
             - name: SMTP_PORT
               valueFrom:
-                secretKeyRef:
-                  name: nz-courses-secret
+                configMapKeyRef:
+                  name: nz-courses-config
                   key: SMTP_PORT
             - name: SMTP_USER
               valueFrom:
-                secretKeyRef:
-                  name: nz-courses-secret
+                configMapKeyRef:
+                  name: nz-courses-config
                   key: SMTP_USER
             - name: SMTP_PASS
               valueFrom:

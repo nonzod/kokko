@@ -12,3 +12,9 @@ data:
   PORT: "3000"
 
   NODE_ENV: "production"
+
+  SCOPES: "read_orders,write_metaobject_definitions,write_metaobjects,write_products"
+
+  SMTP_HOST: "smtp.google.com"
+  SMTP_PORT: "587"
+  SMTP_USER: CHANGEME
