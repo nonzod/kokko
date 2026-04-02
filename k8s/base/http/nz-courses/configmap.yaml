@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nz-courses-config
+  namespace: http
+data:
+  # URL pubblico dell'app (deve corrispondere a application_url in shopify.app.toml)
+  # Shopify RICHIEDE HTTPS — deve puntare all'Ingress con TLS attivo
+  SHOPIFY_APP_URL: "https://nz-courses.nicolatomassoni.it"
+
+  # Porta su cui ascolta il server Node.js (deve combaciare con containerPort nel Deployment)
+  PORT: "3000"
+
+  NODE_ENV: "production"
