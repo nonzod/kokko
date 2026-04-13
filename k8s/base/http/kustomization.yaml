@@ -6,6 +6,4 @@ namespace: http
 resources:
 - namespace.yaml
 - nicolatomassoni
-- ril-presenze
-- nz-courses
 - shopify-proxy
