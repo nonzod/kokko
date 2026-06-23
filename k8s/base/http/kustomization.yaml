@@ -6,5 +6,6 @@ namespace: http
 resources:
 - namespace.yaml
 - badia-proxy
+- ddev-proxy
 - nicolatomassoni
 - shopify-proxy

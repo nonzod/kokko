@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ddev-proxy-service
+  namespace: http
+spec:
+  ports:
+    - protocol: TCP
+      port: 443
+      targetPort: 32769
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: ddev-proxy-service
+  namespace: http
+subsets:
+  - addresses:
+      - ip: 192.168.178.100
+    ports:
+      - port: 32769
