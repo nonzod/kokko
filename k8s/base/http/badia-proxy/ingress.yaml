@@ -5,6 +5,9 @@ metadata:
   namespace: http
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: badia-proxy-basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required - badia"
     kubernetes.io/ingress.class: nginx
     cert-manager.io/cluster-issuer: "letsencrypt-office"
 spec:
