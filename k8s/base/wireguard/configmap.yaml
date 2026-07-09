@@ -8,3 +8,4 @@ data:
   WG_HOST: "vpn.nicolatomassoni.it"
   PORT: "51821"
   WG_PORT: "51820"
+  WG_DEFAULT_ADDRESS: 10.9.0.x
